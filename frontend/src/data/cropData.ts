@@ -553,144 +553,171 @@ const mapDatabaseCropToCrop = (dbCrop: any, category: 'short' | 'medium' | 'long
   };
 };
 
-// 🌱 ASYNC FUNCTIONS TO GET DATABASE CROPS FROM BOTH TABLES (DYNAMIC DISTRICT SUPPORT)
+// 🌱 REAL DATABASE CROP FETCHING FROM SUPABASE FOR ANY TELANGANA DISTRICT
 export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', district?: string): Promise<Crop[]> => {
   try {
-    // 🎯 DEFAULT TO RANGAREDDY IF NO DISTRICT PROVIDED (BACKWARD COMPATIBILITY)
-    const targetDistrict = district || 'Rangareddy';
-    console.log(`🔍 Fetching ${category}-term crops for district: ${targetDistrict}`);
+    const targetDistrict = district || 'Hyderabad';
+    console.log(`🔍 Fetching REAL ${category}-term crops from database for district: ${targetDistrict}`);
     
-    // 🎯 GET DATA FROM BOTH TABLES FOR COMPLETE CROP INFORMATION
+    // 🎯 GET TABLE NAMES FOR DATABASE
+    const originalTableName = category === 'short' ? 'S_T_C_Original' : 
+                           category === 'medium' ? 'M_T_C_Original' : 'L_T_C_Original';
     const popupTableName = category === 'short' ? 'S_T_C_PopUp1' : 
                         category === 'medium' ? 'M_T_C_PopUp1' : 'L_T_C_PopUp1';
     
-    const originalTableName = category === 'short' ? 'Short_Term_Crops' : 
-                          category === 'medium' ? 'Medium_Term_Crops' : 'Long_Term_Crops';
+    console.log(`📊 Fetching from original table: ${originalTableName}`);
+    console.log(`📊 Fetching from popup table: ${popupTableName}`);
     
-    console.log(`🔍 Fetching ${category}-term crops from BOTH tables: ${popupTableName} + ${originalTableName}`);
+    // 🎯 STEP 1: FETCH ORIGINAL DATA FROM DATABASE
+    const { data: originalData, error: originalError } = await supabase
+      .from(originalTableName)
+      .select('*');
     
-    // 🎯 FETCH FROM POPUP TABLE (Investment, Yield, Price, ROI)
-    let popupQuery = supabase.from(popupTableName).select('*');
-    
-    // 🎯 FOR MEDIUM TERM: SHOW ALL CROPS FOR THE DISTRICT (NOT JUST MEDICINAL)
-    // This allows each district to show its specific crops
-    if (category === 'medium') {
-      // Only filter by district, not by crop type
-      console.log(`🎯 Fetching all medium-term crops for ${targetDistrict}`);
-      // Don't filter by medicinal crops - let each district show its own crops
-      // popupQuery = popupQuery.in('Crop_Name', medicinalCrops);
+    if (originalError) {
+      console.error(`❌ Error fetching from ${originalTableName}:`, originalError);
+      throw originalError;
     }
     
-    const { data: popupData, error: popupError } = await popupQuery;
+    console.log(`📊 Original data loaded: ${originalData?.length || 0} crops`);
     
-    // 🎯 FETCH FROM ORIGINAL TABLE (Supply, Demand, Risk, Duration, Soil, Water, Climate)
-    // 🎯 DYNAMIC DISTRICT FILTERING
-    let originalQuery = supabase.from(originalTableName).select('*');
+    // 🎯 STEP 2: FETCH SUPPLEMENTAL DATA FROM POPUP TABLE
+    const { data: popupData, error: popupError } = await supabase
+      .from(popupTableName)
+      .select('*');
     
-    if (category === 'medium') {
-      // 🎯 FETCH ALL MEDIUM-TERM CROPS FOR THE DISTRICT (NOT JUST MEDICINAL)
-      // This allows each district to show its specific crops
-      console.log(`🎯 Fetching all medium-term crops for ${targetDistrict}`);
-      originalQuery = originalQuery
-        .eq('Suitable Telangana District', targetDistrict);
-      // Don't filter by medicinal crops - let each district show its own crops
-      // .in('Crop Name', medicinalCrops);
-    } else if (category === 'short') {
-      // Filter for short-term crops in the target district
-      console.log(`🎯 Filtering for ${targetDistrict} short-term crops`);
-      originalQuery = originalQuery
-        .eq('Suitable Telangana District', targetDistrict);
-    } else if (category === 'long') {
-      // Filter for long-term crops in the target district
-      console.log(`🎯 Filtering for ${targetDistrict} long-term crops`);
-      originalQuery = originalQuery
-        .eq('Suitable Telangana District', targetDistrict);
-    }
+    let finalCrops = [];
     
-    const { data: originalData, error: originalError } = await originalQuery;
-    
-    if (popupError || originalError) {
-      console.error(`Error fetching ${category} crops:`, popupError || originalError);
-      // Return static data as fallback
-      return category === 'short' ? shortTermCrops : 
-             category === 'medium' ? mediumTermCrops : longTermCrops;
-    }
-    
-    if (popupData && originalData && popupData.length > 0 && originalData.length > 0) {
-      // 🎯 FILTER POPUP DATA TO MATCH DISTRICT ORIGINAL CROPS
-      let filteredPopupData = popupData;
-      if (category === 'medium' || category === 'long') {
-        const districtCropNames = originalData.map(orig => orig['Crop Name']);
-        filteredPopupData = popupData.filter(popupCrop => 
-          districtCropNames.includes(popupCrop.Crop_Name)
-        );
-        console.log(`🎯 Filtered popup data for ${category}-term: ${filteredPopupData.length} crops match ${targetDistrict}`);
-      }
+    if (popupError || !popupData) {
+      console.log(`⚠️ Popup table unavailable, using original data only`);
+      // 🎯 USE ORIGINAL DATA ONLY
+      finalCrops = originalData.map(crop => {
+        const mappedCrop = mapDatabaseCropToCrop(crop, category);
+        console.log(`🌱 Original-only crop: ${crop['Crop Name']} for ${targetDistrict}`);
+        return mappedCrop;
+      });
+    } else {
+      console.log(`📊 Popup data available: ${popupData.length} crops`);
       
-      // 🎯 REMOVE DUPLICATES FROM POPUP DATA
-      const uniquePopupData = filteredPopupData.filter((popupCrop, index, self) => 
-        index === self.findIndex(c => c.Crop_Name === popupCrop.Crop_Name)
-      );
-      
-      console.log(`🎯 Removed duplicates: ${uniquePopupData.length} unique popup crops`);
-      
-      // 🎯 MERGE DATA FROM BOTH TABLES
-      const mergedCrops = uniquePopupData.map((popupCrop, index) => {
-        const originalCrop = originalData.find(orig => 
-          orig['Crop Name'] === popupCrop['Crop Name'] || 
-          orig['Crop Name'] === popupCrop['Crop_Name']
+      // 🎯 MERGE ORIGINAL AND POPUP DATA
+      finalCrops = originalData.map((originalCrop) => {
+        // 🎯 FIND MATCHING POPUP DATA
+        const popupCrop = popupData.find(popup => 
+          popup.Crop_Name === originalCrop['Crop Name'] || 
+          popup.Crop_Name === originalCrop['Crop_Name']
         );
         
-        if (originalCrop) {
-          // 🎯 COMBINE BOTH DATA SOURCES
-          const combinedCrop = {
-            ...popupCrop,
-            ...originalCrop
-          };
-          
-          console.log(`🌱 Merged ${popupCrop['Crop Name'] || popupCrop['Crop_Name']}: Investment=${popupCrop['Investment_Per_Acre']}, Supply=${originalCrop['Supply Status']}`);
-          return mapDatabaseCropToCrop(combinedCrop, category);
+        if (popupCrop) {
+          // 🎯 MERGE BOTH DATA SOURCES
+          const combinedCrop = { ...originalCrop, ...popupCrop };
+          const mappedCrop = mapDatabaseCropToCrop(combinedCrop, category);
+          console.log(`🌱 Merged crop: ${originalCrop['Crop Name']} for ${targetDistrict}`);
+          return mappedCrop;
         } else {
-          console.log(`⚠️ No match found for ${popupCrop['Crop Name'] || popupCrop['Crop_Name']} in original table`);
-          return mapDatabaseCropToCrop(popupCrop, category);
+          // 🎯 USE ORIGINAL DATA ONLY
+          const mappedCrop = mapDatabaseCropToCrop(originalCrop, category);
+          console.log(`🌱 Original-only crop: ${originalCrop['Crop Name']} for ${targetDistrict}`);
+          return mappedCrop;
         }
       });
-      
-      // 🎯 FOR SHORT TERM, MEDIUM TERM AND LONG TERM: ADD ORIGINAL CROPS THAT DON'T HAVE POPUP DATA
-      if (category === 'short' || category === 'medium' || category === 'long') {
-        const originalCropNames = uniquePopupData.map(p => p.Crop_Name);
-        const originalCropsWithoutPopup = originalData.filter(orig => 
-          !originalCropNames.includes(orig['Crop Name'])
-        );
-        
-        console.log(`🎯 Adding ${originalCropsWithoutPopup.length} original crops without popup data`);
-        
-        const originalCropsMapped = originalCropsWithoutPopup.map(originalCrop => {
-          console.log(`🌱 Adding original-only crop: ${originalCrop['Crop Name']}`);
-          return mapDatabaseCropToCrop(originalCrop, category);
-        });
-        
-        const allCrops = [...mergedCrops, ...originalCropsMapped];
-        console.log(`🎯 Final ${category}-term crops for ${targetDistrict}: ${allCrops.length}`);
-        return allCrops;
-      }
-      
-      console.log(`🎯 Final merged crops: ${mergedCrops.length}`);
-      return mergedCrops;
     }
     
-    // 🎯 NO DATA FOUND FOR DISTRICT - RETURN EMPTY ARRAY (NOT STATIC CROPS)
-    console.log(`📝 No database data found for ${category}-term crops in ${targetDistrict}`);
-    console.log(`🎯 Returning empty array for ${targetDistrict} ${category}-term crops`);
-    return [];
+    // 🎯 FINAL VERIFICATION - ENSURE ALL CROPS BELONG TO TARGET DISTRICT
+    const verifiedCrops = finalCrops.filter(crop => {
+      const isValid = !crop.district || crop.district === targetDistrict;
+      if (!isValid) {
+        console.log(`❌ Filtered out crop ${crop.name} - belongs to ${crop.district}, not ${targetDistrict}`);
+      }
+      return isValid;
+    });
+    
+    console.log(`✅ FINAL RESULT: ${verifiedCrops.length} verified ${category}-term crops for ${targetDistrict}`);
+    
+    // 🎯 LOG CROP DETAILS FOR DEBUGGING
+    verifiedCrops.forEach((crop, index) => {
+      console.log(`🌱 Crop ${index + 1}: ${crop.name} (${crop.district || targetDistrict}) - Investment: ₹${crop.investmentCost}, Profit: ₹${crop.profitPerAcre}`);
+    });
+    
+    return verifiedCrops;
     
   } catch (error) {
-    console.error(`Error in getCropsByCategory for ${category}:`, error);
-    // 🎯 FOR DISTRICT-SPECIFIC LOGIC, RETURN EMPTY ARRAY ON ERROR
-    console.log(`🎯 Returning empty array due to error for ${category}-term crops`);
-    return [];
+    console.error(`❌ CRITICAL ERROR in getCropsByCategory for ${category}:`, error);
+    console.log(`🔄 FALLBACK TO STATIC DATA for ${district || 'unknown'}`);
+    
+    // 🎯 FALLBACK TO STATIC DATA FILTERED BY DISTRICT
+    const staticCrops = category === 'short' ? shortTermCrops : 
+                        category === 'medium' ? mediumTermCrops : longTermCrops;
+    
+    const filteredStaticCrops = staticCrops.filter(crop => 
+      !crop.district || crop.district === (district || 'Hyderabad')
+    );
+    
+    return filteredStaticCrops.length > 0 ? filteredStaticCrops : staticCrops;
   }
 };
+
+// 🎯 CREATE DYNAMIC CROPS FOR ANY DISTRICT
+const createDynamicCrops = (category: 'short' | 'medium' | 'long', district: string): Crop[] => {
+  console.log(`🌱 Creating dynamic ${category}-term crops for ${district}`);
+  
+  const baseCrops = {
+    short: [
+      { name: 'Paddy', duration: '90 days', profit: 30000, investment: 15000 },
+      { name: 'Maize', duration: '80 days', profit: 25000, investment: 12000 },
+      { name: 'Green Gram', duration: '60 days', profit: 20000, investment: 10000 }
+    ],
+    medium: [
+      { name: 'Cotton', duration: '150 days', profit: 50000, investment: 25000 },
+      { name: 'Chilli', duration: '120 days', profit: 45000, investment: 20000 },
+      { name: 'Turmeric', duration: '180 days', profit: 60000, investment: 30000 }
+    ],
+    long: [
+      { name: 'Mango', duration: '365 days', profit: 100000, investment: 50000 },
+      { name: 'Sugarcane', duration: '300 days', profit: 80000, investment: 40000 },
+      { name: 'Coconut', duration: '365 days', profit: 120000, investment: 60000 }
+    ]
+  };
+  
+  return baseCrops[category].map((crop, index) => ({
+    id: `${category}-${district}-${index}`,
+    name: crop.name,
+    category,
+    duration: crop.duration,
+    durationDays: parseInt(crop.duration),
+    profitPerAcre: crop.profit,
+    investmentCost: crop.investment,
+    expectedYield: 1000,
+    marketPrice: 50,
+    waterNeeds: 'Moderate',
+    demand: 'High',
+    image: `/images/${crop.name.toLowerCase().replace(' ', '-')}.jpg`,
+    description: `${crop.name} suitable for ${district} district`,
+    cultivationSteps: ['Planting', 'Growing', 'Harvest'],
+    seasonalInfo: `Best season for ${crop.name} in ${district}`,
+    pestManagement: ['Regular monitoring'],
+    harvestTimeline: [`Harvest in ${crop.duration}`],
+    soilTypes: ['Red soil', 'Black soil'],
+    climate: { temperatureC: [20, 35], rainfallMm: [500, 1000], season: 'Kharif' },
+    irrigation: 'Drip irrigation',
+    fertilizerGuideline: 'NPK recommended',
+    pestsAndDiseases: 'Standard precautions',
+    stages: [{ name: 'Planting', daysFromStart: 0 }],
+    roiDefaults: { 
+      landAreaAcre: 1, 
+      investmentPerAcreINR: crop.investment, 
+      expectedYieldPerAcre: 1000, 
+      pricePerUnitINR: 50, 
+      unit: 'kg' 
+    },
+    quickReturns: { 
+      totalRevenuePerAcreINR: crop.profit + crop.investment, 
+      netProfitPerAcreINR: crop.profit, 
+      avgROIPercent: 200 
+    },
+    notes: `Suitable for ${district} district`,
+    district
+  }));
+};
+
 
 // 🌱 ASYNC FUNCTIONS TO GET DATABASE CROPS FROM POPUP TABLES (FOR INVESTMENT, YIELD, PRICE)
 export const getCropsByCategoryFromPopup = async (category: 'short' | 'medium' | 'long'): Promise<Crop[]> => {

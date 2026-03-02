@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 // Language types
-export type Language = 'en' | 'hi' | 'te' | 'ta' | 'ml' | 'kn';
+export type Language = 'en' | 'hi' | 'te';
 
 // Language context interface
 interface LanguageContextType {
@@ -25,9 +25,6 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     { code: 'en' as Language, name: 'English', native: 'English' },
     { code: 'hi' as Language, name: 'Hindi', native: 'हिंदी' },
     { code: 'te' as Language, name: 'Telugu', native: 'తెలుగు' },
-    { code: 'ta' as Language, name: 'Tamil', native: 'தமிழ்' },
-    { code: 'ml' as Language, name: 'Malayalam', native: 'മലയാളം' },
-    { code: 'kn' as Language, name: 'Kannada', native: 'ಕನ್ನಡ' },
   ];
 
   const setLanguage = (language: Language) => {

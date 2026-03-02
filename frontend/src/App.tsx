@@ -8,6 +8,9 @@ import Index from './pages/Index';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Crops from './pages/Crops';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Marketplace from './pages/Marketplace';
 import ExploreCrops from './pages/ExploreCrops';
 import ExploreCropsTest from './pages/ExploreCropsTest';
 import ExploreCropsUltraProFinal from "./pages/ExploreCropsUltraProFinal";
@@ -59,6 +62,9 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/marketplace" element={<Marketplace />} />
                 <Route path="/crops" element={<Crops />} />
                 <Route path="/crops-data" element={<CropsDisplay />} />
                 <Route path="/explore-crops" element={<ExploreCropsUltraProFinal />} />
