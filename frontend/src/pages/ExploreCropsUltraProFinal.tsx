@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, TrendingUp, Clock, Droplets, ArrowUpDown, MapPin, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Filter, TrendingUp, Clock, Droplets, MapPin, AlertCircle } from "lucide-react";
 import CropDetailModal from "@/components/CropDetailModal";
 import { Crop, getCropsByCategory, getCropsByCategorySync } from "@/data/cropData";
 
@@ -74,114 +74,160 @@ const ExploreCropsUltraProFinal = () => {
     setSelectedCrop(null);
   };
 
-  // 🔹 REAL-TIME GPS LOCATION DETECTION (ALWAYS FRESH LOCATION)
+  // 🔹 IMMEDIATE SURYAPET LOCATION DETECTION (USER IS IN SURYAPET)
   useEffect(() => {
     // 🎯 SCROLL TO TOP WHEN PAGE LOADS
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     
-    console.log('🚀 Starting REAL-TIME GPS location detection...');
+    console.log('🚀 Starting IMMEDIATE SURYAPET location detection...');
     console.log('🌐 Environment:', window.location.hostname);
     console.log('📍 GPS Available:', navigator.geolocation ? 'YES' : 'NO');
     console.log('📱 Device Type:', /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+    console.log('🌐 HTTPS Secure:', window.isSecureContext || window.location.protocol === 'https:');
+    console.log('🔍 Current URL:', window.location.href);
     
     const initializeLocation = async () => {
       try {
         setLoading(true);
         
-        // 🎯 STEP 1: REAL-TIME GPS DETECTION
+        // 🎯 COMPLETE STORAGE RESET
+        console.log('🧹 COMPLETE storage reset...');
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 🎯 STEP 1: IMMEDIATE GPS WITH NO DELAYS
         if (navigator.geolocation) {
-          console.log('🛰️ Getting REAL-TIME location...');
+          console.log('🛰️ Starting IMMEDIATE GPS detection...');
           
           try {
-            // 🎯 FORCE REAL-TIME GPS WITH DETAILED LOGGING
+            // 🎯 DIRECT GPS REQUEST - NO PERMISSION CHECK DELAYS
+            console.log('📍 Requesting GPS immediately...');
+            
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error('GPS timeout - no location received'));
+              }, 15000); // 15 second timeout
+              
               navigator.geolocation.getCurrentPosition(
                 function (position) {
-                  console.log("📍 GPS SUCCESS - Latitude:", position.coords.latitude);
-                  console.log("📍 GPS SUCCESS - Longitude:", position.coords.longitude);
-                  console.log("📍 GPS ACCURACY:", position.coords.accuracy, "meters");
+                  clearTimeout(timeout);
+                  console.log('📍 IMMEDIATE GPS SUCCESS:', {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    altitude: position.coords.altitude,
+                    heading: position.coords.heading,
+                    speed: position.coords.speed,
+                    timestamp: new Date(position.timestamp).toISOString()
+                  });
                   resolve(position);
                 },
                 function (error) {
-                  console.error("❌ GPS Error code:", error.code);
-                  console.error("❌ GPS Error message:", error.message);
+                  clearTimeout(timeout);
+                  console.error('❌ IMMEDIATE GPS FAILED:', error.code, error.message);
+                  
+                  // 🎯 DETAILED ERROR LOGGING
                   switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                      console.error("❌ User denied the request for Geolocation.");
+                    case 1:
+                      console.error('❌ PERMISSION_DENIED - User denied location');
+                      alert('📍 Location permission denied!\n\nPlease:\n1. Click location icon (📍) in your browser\n2. Select "Allow" or "Allow location access"\n3. Refresh this page');
                       break;
-                    case error.POSITION_UNAVAILABLE:
-                      console.error("❌ Location information is unavailable.");
+                    case 2:
+                      console.error('❌ POSITION_UNAVAILABLE - Network or GPS issue');
                       break;
-                    case error.TIMEOUT:
-                      console.error("❌ The request to get user location timed out.");
-                      break;
-                    case error.UNKNOWN_ERROR:
-                      console.error("❌ An unknown error occurred.");
+                    case 3:
+                      console.error('❌ TIMEOUT - GPS took too long');
                       break;
                   }
+                  
                   reject(error);
                 },
                 {
                   enableHighAccuracy: true,
-                  timeout: 10000,
-                  maximumAge: 0
+                  timeout: 15000,
+                  maximumAge: 0 // ABSOLUTELY NO CACHE
                 }
               );
             });
             
-            console.log('📍 REAL-TIME GPS SUCCESS!');
-            console.log('📍 Coordinates:', position.coords.latitude, position.coords.longitude);
+            console.log('🎯 GPS POSITION RECEIVED:', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            });
             
             // 🎯 CONVERT TO DISTRICT
             const district = await getDistrictFromCoordinates(position.coords.latitude, position.coords.longitude);
             
+            console.log('🔍 DISTRICT CONVERSION RESULT:', district);
+            console.log('📍 GPS Coordinates:', position.coords.latitude, position.coords.longitude);
+            
             if (district && validateTelanganaDistrict(district)) {
-              console.log('🎯 DETECTED DISTRICT:', district);
+              console.log('✅ VALID TELANGANA DISTRICT DETECTED:', district);
+              
+              // 🎯 SPECIAL HANDLING FOR SURYAPET
+              if (district === 'Suryapet') {
+                console.log('🎯 SURYAPET DETECTED! User is in Suryapet district!');
+                alert('🎯 SURYAPET DETECTED!\n\nLocation: Suryapet, Telangana\nLoading Suryapet-specific crops from database...');
+              }
               
               setUserLocation({
                 district: district,
                 state: 'Telangana'
               });
               
+              // 🎯 STORE FRESH LOCATION
               localStorage.setItem('userDistrict', district);
-              localStorage.setItem('locationMethod', 'GPS-REALTIME');
+              localStorage.setItem('userCoordinates', `${position.coords.latitude},${position.coords.longitude}`);
+              localStorage.setItem('locationMethod', 'GPS-IMMEDIATE');
+              localStorage.setItem('locationTimestamp', new Date().toISOString());
+              localStorage.setItem('locationAccuracy', position.coords.accuracy.toString());
               
+              console.log('✅ IMMEDIATE GPS SUCCESS - Fresh location detected!');
               setLoading(false);
               return;
-            }
-          } catch (gpsError) {
-            console.log('❌ REAL-TIME GPS failed:', gpsError.message);
-            console.log('📍 GPS Error Type:', gpsError.name);
-            
-            // 🎯 SPECIFIC GPS ERROR HANDLING
-            if (gpsError.message.includes('Permission denied')) {
-              console.log('🔒 User denied location permission - showing permission request');
-              console.log('💡 Please enable location access in browser settings');
-            } else if (gpsError.message.includes('timeout')) {
-              console.log('⏰ GPS timeout - trying IP location as fallback');
             } else {
-              console.log('❓ Unknown GPS error - trying IP location');
+              console.log('❌ GPS coordinates not in Telangana region');
+              console.log('📍 This might be your actual location outside Telangana');
+              
+              // 🎯 SHOW ACTUAL COORDINATES FOR DEBUGGING
+              alert(`📍 GPS detected location:\n\nCoordinates: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}\nDetected District: ${district || 'Unknown'}\n\nIf you are in Suryapet, this might be a GPS error. Try:\n1. Moving to a window/open area\n2. Refreshing the page\n3. Checking location permissions`);
+            }
+            
+          } catch (gpsError) {
+            console.log('❌ IMMEDIATE GPS failed:', gpsError.message);
+            
+            // 🎯 IMMEDIATE ERROR HANDLING
+            if (gpsError.message.includes('Permission denied') || gpsError.message.includes('PERMISSION_DENIED')) {
+              console.log('🔒 GPS PERMISSION DENIED');
+              alert('📍 Location permission denied!\n\nPlease:\n1. Click location icon in browser\n2. Select "Allow" for location\n3. Refresh this page');
+              throw new Error('GPS permission denied');
+            } else if (gpsError.message.includes('timeout')) {
+              console.log('⏰ GPS TIMEOUT - Trying IP location immediately...');
+            } else {
+              console.log('❓ GPS ERROR - Trying IP location...');
             }
           }
         } else {
-          console.log('❌ GPS not available on this device');
-          console.log('📱 Device may not have GPS hardware');
+          console.log('❌ GPS NOT AVAILABLE - Device may not have GPS');
+          alert('📍 GPS not available on this device. Using IP-based location detection.');
         }
         
-        // 🎯 STEP 2: FALLBACK TO IP LOCATION
-        console.log('🌐 Falling back to IP-based location...');
+        // 🎯 STEP 2: IP LOCATION FALLBACK
+        console.log('🌐 Starting IP-based location detection...');
         await getLocationFromIP();
         
       } catch (error) {
         console.error('❌ Complete location detection failed:', error);
-        console.log('🔄 Using default location as last resort');
+        console.log('🔄 Using fallback location...');
         await fallbackToDefaultLocation();
       } finally {
         setLoading(false);
       }
     };
     
-    // 🎯 START LOCATION DETECTION IMMEDIATELY
+    // 🎯 START IMMEDIATELY - NO DELAYS
+    console.log('🚀 Starting IMMEDIATE location detection NOW...');
     initializeLocation();
     
   }, []);
@@ -357,11 +403,11 @@ const ExploreCropsUltraProFinal = () => {
     }
   };
 
-  // 🎯 ENHANCED IP LOCATION DETECTION WITH TELANGANA VALIDATION
+  // 🎯 NETWORK-OPTIMIZED IP LOCATION DETECTION
   const getLocationFromIP = async () => {
-    console.log('🌐 Starting enhanced IP-based location detection...');
+    console.log('🌐 Starting NETWORK-OPTIMIZED IP location detection...');
     
-    // 🎯 TRY MULTIPLE IP SERVICES FOR RELIABILITY
+    // 🎯 RELIABLE IP SERVICES WITH FALLBACKS
     const ipServices = [
       {
         name: 'ipapi.co',
@@ -377,6 +423,16 @@ const ExploreCropsUltraProFinal = () => {
         name: 'ipgeolocation.io',
         url: 'https://api.ipgeolocation.io/ipgeo?apiKey=free',
         mapper: (data: any) => ({ city: data.city, region: data.state_prov, country: data.country_name })
+      },
+      {
+        name: 'ipinfo.io',
+        url: 'https://ipinfo.io/json',
+        mapper: (data: any) => ({ city: data.city, region: data.region, country: data.country })
+      },
+      {
+        name: 'freeipapi.com',
+        url: 'https://freeipapi.com/api/json/',
+        mapper: (data: any) => ({ city: data.cityName, region: data.regionName, country: data.countryCode })
       }
     ];
     
@@ -385,21 +441,28 @@ const ExploreCropsUltraProFinal = () => {
         console.log(`🌐 Trying ${service.name}...`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased timeout
         
         const response = await fetch(service.url, {
           signal: controller.signal,
-          headers: { 'Accept': 'application/json' }
+          headers: { 
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          mode: 'cors' // Ensure CORS is handled
         });
         
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
         }
         
         const data = await response.json();
         const location = service.mapper(data);
+        
+        console.log(`🌐 ${service.name} SUCCESS:`, location);
         
         console.log(`🌐 ${service.name} success:`, location);
         
@@ -433,24 +496,69 @@ const ExploreCropsUltraProFinal = () => {
             console.log(`❌ District "${district}" is not a valid Telangana district`);
           }
         } else {
-          console.log(`❌ ${service.name}: Not in India (${location.country})`);
+          console.log(`❌ District "${district}" is not a valid Telangana district`);
+        }
+      } catch (error) {
+        console.error(` ${service.name} failed:`, error.message);
+        console.error(` Network error details:`, error);
+        
+        // CHECK IF IT'S A NETWORK ERROR
+        if (error.message.includes('Failed to fetch') || 
+            error.message.includes('NetworkError') || 
+            error.message.includes('fetch') ||
+            error.name === 'TypeError') {
+          console.log(' NETWORK ERROR - Trying next service...');
+          continue;
         }
         
-      } catch (error) {
-        console.log(`❌ ${service.name} failed:`, error.message);
         continue;
       }
     }
     
-    // 🎯 ALL IP SERVICES FAILED - USE DEFAULT TELANGANA DISTRICT
-    console.log('❌ All IP services failed, using default Telangana district...');
-    await fallbackToDefaultLocation();
-  };
-
-  // 🎯 HELPER FUNCTION:// 4️⃣ FALLBACK TO DEFAULT DISTRICT
-  const fallbackToDefaultLocation = async () => {
-    console.log('🔄 Using fallback location...');
+    // ALL IP SERVICES FAILED - USE DEFAULT TELANGANA DISTRICT
+    console.log(' All IP services failed, checking network status...');
     
+    // CHECK NETWORK CONNECTIVITY
+    if (!navigator.onLine) {
+      console.log(' OFFLINE - No network connection');
+      alert(' No network connection detected!\n\nPlease check your internet connection and refresh the page.');
+    } else {
+      console.log(' ONLINE but IP services failed - Using fallback location');
+      
+      // 🎯 TRY TO GET LOCATION FROM BROWSER TIMEZONE
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('🕐 Browser timezone:', timezone);
+      
+      // 🎯 INDIAN TIMEZONES - LIKELY TELANGANA
+      if (timezone.includes('Kolkata') || timezone.includes('Chennai') || timezone.includes('Mumbai') || timezone.includes('New Delhi')) {
+        console.log('🇮🇳 Indian timezone detected - using Hyderabad as default');
+        const fallbackDistrict = 'Hyderabad';
+        setUserLocation({
+          district: fallbackDistrict,
+          state: 'Telangana'
+        });
+        localStorage.setItem('userDistrict', fallbackDistrict);
+        return;
+      }
+      
+      // 🎯 TRY TO GET LOCATION FROM BROWSER LANGUAGE
+      const browserLang = navigator.language || navigator.languages?.[0];
+      console.log('🌐 Browser language:', browserLang);
+      
+      if (browserLang.includes('en-IN') || browserLang.includes('te') || browserLang.includes('hi')) {
+        console.log('🇮🇳 Indian language detected - using Hyderabad as default');
+        const fallbackDistrict = 'Hyderabad';
+        setUserLocation({
+          district: fallbackDistrict,
+          state: 'Telangana'
+        });
+        localStorage.setItem('userDistrict', fallbackDistrict);
+        return;
+      }
+    }
+    
+    // 🎯 FINAL FALLBACK - USE HYDERABAD (MOST CENTRAL)
+    console.log('🔄 Using Hyderabad as final fallback');
     const fallbackDistrict = 'Hyderabad';
     setUserLocation({
       district: fallbackDistrict,
@@ -461,64 +569,327 @@ const ExploreCropsUltraProFinal = () => {
     console.log('✅ Fallback location set:', fallbackDistrict);
   };
 
-  // 🎯 SIMPLE COORDINATE TO DISTRICT MAPPING
+  // 🎯 PRECISE BOUNDARY-BASED DISTRICT DETECTION (33 TELANGANA DISTRICTS)
   const getDistrictFromCoordinates = async (lat: number, lon: number): Promise<string | null> => {
-    console.log(`🔍 Converting ${lat}, ${lon} to Telangana district`);
+    console.log(`🔍 PRECISE BOUNDARY detection: ${lat}, ${lon} to Telangana district`);
     
-    // 🎯 TELANGANA DISTRICT CENTERS
-    const districts = [
-      { name: 'Hyderabad', lat: 17.40, lon: 78.40 },
-      { name: 'Rangareddy', lat: 17.20, lon: 78.35 },
-      { name: 'Medchal Malkajgiri', lat: 17.55, lon: 78.55 },
-      { name: 'Sangareddy', lat: 17.65, lon: 78.05 },
-      { name: 'Warangal', lat: 18.05, lon: 79.05 },
-      { name: 'Hanumakonda', lat: 18.05, lon: 79.15 },
-      { name: 'Nizamabad', lat: 18.75, lon: 78.10 },
-      { name: 'Karimnagar', lat: 18.45, lon: 79.05 },
-      { name: 'Khammam', lat: 17.20, lon: 80.15 },
-      { name: 'Adilabad', lat: 19.60, lon: 78.40 },
-      { name: 'Mahabubnagar', lat: 16.80, lon: 16.95 },
-      { name: 'Nalgonda', lat: 17.10, lon: 17.25 },
-      { name: 'Jagtial', lat: 18.80, lon: 18.95 },
-      { name: 'Jayashankar Bhupalpally', lat: 18.20, lon: 18.75 },
-      { name: 'Jangaon', lat: 17.80, lon: 18.10 },
-      { name: 'Jogulamba Gadwal', lat: 16.30, lon: 16.30 },
-      { name: 'Kamareddy', lat: 18.30, lon: 18.30 },
-      { name: 'Kumuram Bheem', lat: 19.40, lon: 19.30 },
-      { name: 'Mahabubabad', lat: 17.80, lon: 17.90 },
-      { name: 'Mancherial', lat: 18.90, lon: 18.90 },
-      { name: 'Medak', lat: 18.00, lon: 18.20 },
-      { name: 'Mulugu', lat: 18.80, lon: 19.00 },
-      { name: 'Nagarkurnool', lat: 16.50, lon: 16.30 },
-      { name: 'Narayanpet', lat: 16.80, lon: 16.40 },
-      { name: 'Nirmal', lat: 19.10, lon: 19.30 },
-      { name: 'Peddapalli', lat: 18.60, lon: 18.40 },
-      { name: 'Rajanna Sircilla', lat: 18.40, lon: 18.30 },
-      { name: 'Siddipet', lat: 17.90, lon: 17.80 },
-      { name: 'Suryapet', lat: 17.10, lon: 17.60 },
-      { name: 'Vikarabad', lat: 17.30, lon: 17.30 },
-      { name: 'Wanaparthy', lat: 16.40, lon: 16.00 },
-      { name: 'Yadadri Bhuvanagiri', lat: 17.10, lon: 16.90 },
-      { name: 'Bhadradri Kothagudem', lat: 17.50, lon: 17.60 }
+    // 🎯 ACCURATE TELANGANA DISTRICT BOUNDARIES (FROM YOUR DATA)
+    const districtBoundaries = [
+      {
+        name: 'Adilabad',
+        bounds: {
+          north: 19.90, south: 19.20, east: 78.80, west: 77.40,
+          northeast: [19.90, 78.80], northwest: [19.90, 77.40],
+          southeast: [19.20, 78.80], southwest: [19.20, 77.40]
+        }
+      },
+      {
+        name: 'Bhadradri Kothagudem',
+        bounds: {
+          north: 18.90, south: 17.60, east: 81.00, west: 80.10,
+          northeast: [18.90, 81.00], northwest: [18.90, 80.10],
+          southeast: [17.60, 81.00], southwest: [17.60, 80.10]
+        }
+      },
+      {
+        name: 'Hyderabad',
+        bounds: {
+          north: 17.60, south: 17.30, east: 78.60, west: 78.30,
+          northeast: [17.60, 78.60], northwest: [17.60, 78.30],
+          southeast: [17.30, 78.60], southwest: [17.30, 78.30]
+        }
+      },
+      {
+        name: 'Jagtial',
+        bounds: {
+          north: 18.90, south: 18.30, east: 78.90, west: 78.20,
+          northeast: [18.90, 78.90], northwest: [18.90, 78.20],
+          southeast: [18.30, 78.90], southwest: [18.30, 78.20]
+        }
+      },
+      {
+        name: 'Jangaon',
+        bounds: {
+          north: 17.90, south: 17.50, east: 79.50, west: 79.00,
+          northeast: [17.90, 79.50], northwest: [17.90, 79.00],
+          southeast: [17.50, 79.50], southwest: [17.50, 79.00]
+        }
+      },
+      {
+        name: 'Jayashankar Bhupalpally',
+        bounds: {
+          north: 18.80, south: 17.80, east: 80.60, west: 79.60,
+          northeast: [18.80, 80.60], northwest: [18.80, 79.60],
+          southeast: [17.80, 80.60], southwest: [17.80, 79.60]
+        }
+      },
+      {
+        name: 'Jogulamba Gadwal',
+        bounds: {
+          north: 16.40, south: 15.80, east: 77.70, west: 76.90,
+          northeast: [16.40, 77.70], northwest: [16.40, 76.90],
+          southeast: [15.80, 77.70], southwest: [15.80, 76.90]
+        }
+      },
+      {
+        name: 'Kamareddy',
+        bounds: {
+          north: 18.60, south: 18.00, east: 78.60, west: 77.80,
+          northeast: [18.60, 78.60], northwest: [18.60, 77.80],
+          southeast: [18.00, 78.60], southwest: [18.00, 77.80]
+        }
+      },
+      {
+        name: 'Karimnagar',
+        bounds: {
+          north: 18.60, south: 17.90, east: 79.40, west: 78.80,
+          northeast: [18.60, 79.40], northwest: [18.60, 78.80],
+          southeast: [17.90, 79.40], southwest: [17.90, 78.80]
+        }
+      },
+      {
+        name: 'Khammam',
+        bounds: {
+          north: 17.60, south: 16.90, east: 80.30, west: 79.70,
+          northeast: [17.60, 80.30], northwest: [17.60, 79.70],
+          southeast: [16.90, 80.30], southwest: [16.90, 79.70]
+        }
+      },
+      {
+        name: 'Komaram Bheem Asifabad',
+        bounds: {
+          north: 19.60, south: 18.80, east: 79.00, west: 78.20,
+          northeast: [19.60, 79.00], northwest: [19.60, 78.20],
+          southeast: [18.80, 79.00], southwest: [18.80, 78.20]
+        }
+      },
+      {
+        name: 'Mahabubabad',
+        bounds: {
+          north: 17.90, south: 17.10, east: 80.20, west: 79.50,
+          northeast: [17.90, 80.20], northwest: [17.90, 79.50],
+          southeast: [17.10, 80.20], southwest: [17.10, 79.50]
+        }
+      },
+      {
+        name: 'Mahabubnagar',
+        bounds: {
+          north: 17.30, south: 16.40, east: 78.30, west: 77.30,
+          northeast: [17.30, 78.30], northwest: [17.30, 77.30],
+          southeast: [16.40, 78.30], southwest: [16.40, 77.30]
+        }
+      },
+      {
+        name: 'Mancherial',
+        bounds: {
+          north: 19.40, south: 18.70, east: 79.80, west: 78.90,
+          northeast: [19.40, 79.80], northwest: [19.40, 78.90],
+          southeast: [18.70, 79.80], southwest: [18.70, 78.90]
+        }
+      },
+      {
+        name: 'Medak',
+        bounds: {
+          north: 18.20, south: 17.60, east: 78.30, west: 77.70,
+          northeast: [18.20, 78.30], northwest: [18.20, 77.70],
+          southeast: [17.60, 78.30], southwest: [17.60, 77.70]
+        }
+      },
+      {
+        name: 'Medchal–Malkajgiri',
+        bounds: {
+          north: 17.70, south: 17.40, east: 78.70, west: 78.30,
+          northeast: [17.70, 78.70], northwest: [17.70, 78.30],
+          southeast: [17.40, 78.70], southwest: [17.40, 78.30]
+        }
+      },
+      {
+        name: 'Mulugu',
+        bounds: {
+          north: 18.90, south: 17.80, east: 80.90, west: 79.90,
+          northeast: [18.90, 80.90], northwest: [18.90, 79.90],
+          southeast: [17.80, 80.90], southwest: [17.80, 79.90]
+        }
+      },
+      {
+        name: 'Nagarkurnool',
+        bounds: {
+          north: 16.90, south: 16.10, east: 78.90, west: 77.80,
+          northeast: [16.90, 78.90], northwest: [16.90, 77.80],
+          southeast: [16.10, 78.90], southwest: [16.10, 77.80]
+        }
+      },
+      {
+        name: 'Nalgonda',
+        bounds: {
+          north: 17.40, south: 16.70, east: 80.00, west: 78.90,
+          northeast: [17.40, 80.00], northwest: [17.40, 78.90],
+          southeast: [16.70, 80.00], southwest: [16.70, 78.90]
+        }
+      },
+      {
+        name: 'Narayanpet',
+        bounds: {
+          north: 17.10, south: 16.10, east: 77.70, west: 76.90,
+          northeast: [17.10, 77.70], northwest: [17.10, 76.90],
+          southeast: [16.10, 77.70], southwest: [16.10, 76.90]
+        }
+      },
+      {
+        name: 'Nirmal',
+        bounds: {
+          north: 19.40, south: 18.80, east: 79.00, west: 78.10,
+          northeast: [19.40, 79.00], northwest: [19.40, 78.10],
+          southeast: [18.80, 79.00], southwest: [18.80, 78.10]
+        }
+      },
+      {
+        name: 'Nizamabad',
+        bounds: {
+          north: 18.80, south: 18.10, east: 78.60, west: 77.90,
+          northeast: [18.80, 78.60], northwest: [18.80, 77.90],
+          southeast: [18.10, 78.60], southwest: [18.10, 77.90]
+        }
+      },
+      {
+        name: 'Peddapalli',
+        bounds: {
+          north: 18.90, south: 18.20, east: 79.60, west: 78.90,
+          northeast: [18.90, 79.60], northwest: [18.90, 78.90],
+          southeast: [18.20, 79.60], southwest: [18.20, 78.90]
+        }
+      },
+      {
+        name: 'Rajanna Sircilla',
+        bounds: {
+          north: 18.70, south: 18.10, east: 78.90, west: 78.30,
+          northeast: [18.70, 78.90], northwest: [18.70, 78.30],
+          southeast: [18.10, 78.90], southwest: [18.10, 78.30]
+        }
+      },
+      {
+        name: 'Rangareddy',
+        bounds: {
+          north: 17.60, south: 16.90, east: 78.60, west: 77.80,
+          northeast: [17.60, 78.60], northwest: [17.60, 77.80],
+          southeast: [16.90, 78.60], southwest: [16.90, 77.80]
+        }
+      },
+      {
+        name: 'Sangareddy',
+        bounds: {
+          north: 18.10, south: 17.40, east: 78.40, west: 77.50,
+          northeast: [18.10, 78.40], northwest: [18.10, 77.50],
+          southeast: [17.40, 78.40], southwest: [17.40, 77.50]
+        }
+      },
+      {
+        name: 'Siddipet',
+        bounds: {
+          north: 18.40, south: 17.60, east: 79.20, west: 78.40,
+          northeast: [18.40, 79.20], northwest: [18.40, 78.40],
+          southeast: [17.60, 79.20], southwest: [17.60, 78.40]
+        }
+      },
+      {
+        name: 'Suryapet',
+        bounds: {
+          north: 17.50, south: 16.90, east: 80.60, west: 79.80,
+          northeast: [17.50, 80.60], northwest: [17.50, 79.80],
+          southeast: [16.90, 80.60], southwest: [16.90, 79.80]
+        }
+      },
+      {
+        name: 'Vikarabad',
+        bounds: {
+          north: 17.60, south: 16.90, east: 78.10, west: 77.30,
+          northeast: [17.60, 78.10], northwest: [17.60, 77.30],
+          southeast: [16.90, 78.10], southwest: [16.90, 77.30]
+        }
+      },
+      {
+        name: 'Wanaparthy',
+        bounds: {
+          north: 16.60, south: 16.00, east: 78.40, west: 77.80,
+          northeast: [16.60, 78.40], northwest: [16.60, 77.80],
+          southeast: [16.00, 78.40], southwest: [16.00, 77.80]
+        }
+      },
+      {
+        name: 'Warangal',
+        bounds: {
+          north: 18.10, south: 17.60, east: 79.90, west: 79.30,
+          northeast: [18.10, 79.90], northwest: [18.10, 79.30],
+          southeast: [17.60, 79.90], southwest: [17.60, 79.30]
+        }
+      },
+      {
+        name: 'Hanamkonda',
+        bounds: {
+          north: 18.10, south: 17.90, east: 79.70, west: 79.30,
+          northeast: [18.10, 79.70], northwest: [18.10, 79.30],
+          southeast: [17.90, 79.70], southwest: [17.90, 79.30]
+        }
+      },
+      {
+        name: 'Yadadri Bhuvanagiri',
+        bounds: {
+          north: 17.70, south: 17.20, east: 79.60, west: 78.90,
+          northeast: [17.70, 79.60], northwest: [17.70, 78.90],
+          southeast: [17.20, 79.60], southwest: [17.20, 78.90]
+        }
+      }
     ];
     
-    // 🎯 FIND NEAREST DISTRICT
-    let nearestDistrict = null;
+    // 🎯 PRECISE BOUNDARY DETECTION
+    for (const district of districtBoundaries) {
+      const bounds = district.bounds;
+      
+      // 🎯 CHECK IF COORDINATES ARE WITHIN DISTRICT BOUNDARIES
+      if (lat >= bounds.south && lat <= bounds.north && lon >= bounds.west && lon <= bounds.east) {
+        console.log(`✅ PRECISE MATCH: ${district.name}`);
+        console.log(`📍 Coordinates ${lat}, ${lon} are within ${district.name} boundaries`);
+        console.log(`🎯 Bounds: N${bounds.north}, S${bounds.south}, E${bounds.east}, W${bounds.west}`);
+        
+        // 🎯 SPECIAL HANDLING FOR SURYAPET
+        if (district.name === 'Suryapet') {
+          console.log('🎯 SURYAPET DETECTED! User is in Suryapet district!');
+          console.log('🌾 Will show Suryapet-specific crops from Supabase database');
+        }
+        
+        return district.name;
+      }
+    }
+    
+    // 🎯 IF NO EXACT MATCH, FIND CLOSEST DISTRICT
+    console.log('⚠️ No exact boundary match, finding closest district...');
+    let closestDistrict = null;
     let minDistance = Infinity;
     
-    districts.forEach(district => {
+    for (const district of districtBoundaries) {
+      const bounds = district.bounds;
+      const centerLat = (bounds.north + bounds.south) / 2;
+      const centerLon = (bounds.east + bounds.west) / 2;
+      
       const distance = Math.sqrt(
-        Math.pow(lat - district.lat, 2) + Math.pow(lon - district.lon, 2)
+        Math.pow(lat - centerLat, 2) + Math.pow(lon - centerLon, 2)
       );
       
       if (distance < minDistance) {
         minDistance = distance;
-        nearestDistrict = district.name;
+        closestDistrict = district.name;
       }
-    });
+    }
     
-    console.log(`🎯 Nearest district: ${nearestDistrict} (${minDistance.toFixed(3)}°)`);
-    return nearestDistrict;
+    console.log(`🎯 CLOSEST DISTRICT: ${closestDistrict} (${(minDistance * 111).toFixed(2)}km away)`);
+    
+    // 🎯 SPECIAL DEBUGGING FOR SURYAPET
+    if (closestDistrict === 'Suryapet') {
+      console.log('🎯 SURYAPET IS CLOSEST! User is near Suryapet district!');
+      console.log('🌾 Will show Suryapet-specific crops from Supabase database');
+    }
+    
+    return closestDistrict;
   };
 
   // 🎯 OFFICIAL TELANGANA CITY TO DISTRICT MAPPING (33 DISTRICTS ONLY)
@@ -712,110 +1083,7 @@ const ExploreCropsUltraProFinal = () => {
     return isValid;
   };
 
-  // 🔹 LOCATION REFRESH FUNCTION
-  const refreshLocation = async () => {
-    console.log('🔄 Manual location refresh triggered...');
-    setLoading(true);
-    
-    // 🎯 CLEAR SAVED LOCATION
-    localStorage.removeItem('userDistrict');
-    localStorage.removeItem('userCoordinates');
-    localStorage.removeItem('locationMethod');
-    localStorage.removeItem('locationTimestamp');
-    localStorage.removeItem('locationAccuracy');
-    
-    // 🎯 RESET USER LOCATION
-    setUserLocation(null);
-    
-    // 🎯 RE-INITIALIZE LOCATION
-    const initializeLocation = async () => {
-      try {
-        // 🎯 STEP 1: TRY GPS FIRST
-        if (navigator.geolocation) {
-          console.log('🛰️ Manual GPS location detection...');
-          
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              const timeoutId = setTimeout(() => reject(new Error('GPS timeout')), 10000);
-              
-              navigator.geolocation.getCurrentPosition(
-                function (position) {
-                  clearTimeout(timeoutId);
-                  console.log("📍 MANUAL GPS SUCCESS - Latitude:", position.coords.latitude);
-                  console.log("📍 MANUAL GPS SUCCESS - Longitude:", position.coords.longitude);
-                  console.log("📍 MANUAL GPS ACCURACY:", position.coords.accuracy, "meters");
-                  resolve(position);
-                },
-                function (error) {
-                  clearTimeout(timeoutId);
-                  console.error("❌ MANUAL GPS Error code:", error.code);
-                  console.error("❌ MANUAL GPS Error message:", error.message);
-                  switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                      console.error("❌ User denied the request for Geolocation.");
-                      break;
-                    case error.POSITION_UNAVAILABLE:
-                      console.error("❌ Location information is unavailable.");
-                      break;
-                    case error.TIMEOUT:
-                      console.error("❌ The request to get user location timed out.");
-                      break;
-                    case error.UNKNOWN_ERROR:
-                      console.error("❌ An unknown error occurred.");
-                      break;
-                  }
-                  reject(error);
-                },
-                {
-                  enableHighAccuracy: true,
-                  timeout: 10000,
-                  maximumAge: 0
-                }
-              );
-            });
-            
-            console.log('📍 Manual GPS SUCCESS:', position.coords.latitude, position.coords.longitude);
-            
-            const district = await getDistrictFromCoordinates(position.coords.latitude, position.coords.longitude);
-            
-            if (district && validateTelanganaDistrict(district)) {
-              console.log('🎯 VALID GPS District detected:', district);
-              setUserLocation({
-                district: district,
-                state: 'Telangana'
-              });
-              
-              localStorage.setItem('userDistrict', district);
-              localStorage.setItem('userCoordinates', `${position.coords.latitude},${position.coords.longitude}`);
-              localStorage.setItem('locationMethod', 'GPS-MANUAL');
-              localStorage.setItem('locationTimestamp', new Date().toISOString());
-              localStorage.setItem('locationAccuracy', position.coords.accuracy.toString());
-              
-              setLoading(false);
-              return;
-            } else if (district) {
-              console.log(`❌ GPS district "${district}" is not a valid Telangana district`);
-            }
-          } catch (gpsError) {
-            console.log('❌ Manual GPS failed:', gpsError.message);
-          }
-        }
-        
-        // 🎯 STEP 2: FALLBACK TO IP LOCATION
-        console.log('🌐 Manual IP location fallback...');
-        await getLocationFromIP();
-        
-      } catch (error) {
-        console.error('❌ Manual location refresh failed:', error);
-        await fallbackToDefaultLocation();
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    await initializeLocation();
-  };
-
+  
   // 🔹 DEBUG: MANUAL LOCATION OVERRIDE (FOR TESTING)
   const setManualLocation = (district: string) => {
     console.log('🔧 Manual location override:', district);
@@ -928,42 +1196,33 @@ const ExploreCropsUltraProFinal = () => {
         {/* 🔹 LOCATION STATUS - CENTERED */}
         <div className="mb-8 flex justify-center">
           {userLocation?.district ? (
-            <div className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-lg max-w-md">
-              {userLocation && (
-                <div className="flex items-center justify-between w-full mb-3">
-                  <div className="flex items-center">
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2"></div>
-                    ) : (
-                      <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                    )}
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        📍 {userLocation.district}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        Real-time location detected
-                      </div>
-                    </div>
+            <div className="flex flex-col items-center p-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl shadow-lg max-w-lg">
+              <div className="flex items-center mb-4">
+                {loading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-3 border-blue-500 border-t-transparent mr-3"></div>
+                ) : (
+                  <div className="w-6 h-6 bg-green-500 rounded-full mr-3 shadow-md"></div>
+                )}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-800 mb-1">
+                    📍 {userLocation.district}
+                  </div>
+                  <div className="text-sm text-green-600 font-medium">
+                    Real-time location detected
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ) : (
-            <div className="text-center">
-              <h3 className="font-semibold text-blue-800">📍 Detecting location...</h3>
-              <p className="text-blue-600 text-sm">Getting your district information</p>
+            <div className="text-center p-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl shadow-lg max-w-lg">
+              <h3 className="text-xl font-bold text-blue-800 mb-2">📍 Detecting your location...</h3>
+              <p className="text-blue-600 mb-4">Getting real-time GPS coordinates</p>
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-500 border-t-transparent mb-3"></div>
+                <p className="text-sm text-gray-600">Please allow location access for accurate detection</p>
+              </div>
             </div>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refreshLocation}
-            className="text-blue-700 border-blue-300 hover:bg-blue-100"
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpDown className="h-4 w-4" />}
-          </Button>
         </div>
 
         {/* 🔹 DISTRICT SUMMARY */}

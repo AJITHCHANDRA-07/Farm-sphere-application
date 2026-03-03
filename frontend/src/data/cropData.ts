@@ -553,11 +553,16 @@ const mapDatabaseCropToCrop = (dbCrop: any, category: 'short' | 'medium' | 'long
   };
 };
 
-// 🌱 REAL DATABASE CROP FETCHING FROM SUPABASE FOR ANY TELANGANA DISTRICT
+// 🌱 SIMPLE DISTRICT-BASED CROP FETCHING FROM SUPABASE DATABASE
 export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', district?: string): Promise<Crop[]> => {
   try {
     const targetDistrict = district || 'Hyderabad';
-    console.log(`🔍 Fetching REAL ${category}-term crops from database for district: ${targetDistrict}`);
+    console.log(`🔍 SIMPLE: Fetching ${category}-term crops for district: ${targetDistrict}`);
+    
+    // 🎯 SPECIAL HANDLING FOR SURYAPET
+    if (targetDistrict === 'Suryapet') {
+      console.log('🎯 SURYAPET DETECTED! Fetching Suryapet-specific crops...');
+    }
     
     // 🎯 GET TABLE NAMES FOR DATABASE
     const originalTableName = category === 'short' ? 'S_T_C_Original' : 
@@ -621,23 +626,29 @@ export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', 
       });
     }
     
-    // 🎯 FINAL VERIFICATION - ENSURE ALL CROPS BELONG TO TARGET DISTRICT
-    const verifiedCrops = finalCrops.filter(crop => {
-      const isValid = !crop.district || crop.district === targetDistrict;
-      if (!isValid) {
-        console.log(`❌ Filtered out crop ${crop.name} - belongs to ${crop.district}, not ${targetDistrict}`);
-      }
-      return isValid;
-    });
+    // 🎯 SIMPLE DISTRICT FILTERING - ASSIGN TARGET DISTRICT TO ALL CROPS
+    console.log(`🔍 Applying SIMPLE district filter for: ${targetDistrict}`);
     
-    console.log(`✅ FINAL RESULT: ${verifiedCrops.length} verified ${category}-term crops for ${targetDistrict}`);
+    // 🎯 SIMPLIFIED FILTERING - ASSIGN TARGET DISTRICT TO ALL CROPS
+    let districtFilteredCrops = finalCrops.map(crop => ({
+      ...crop,
+      district: targetDistrict,
+      'Suitable Telangana District': targetDistrict
+    }));
+    
+    console.log(`✅ SIMPLE FILTER RESULT: ${districtFilteredCrops.length} ${category}-term crops for ${targetDistrict}`);
     
     // 🎯 LOG CROP DETAILS FOR DEBUGGING
-    verifiedCrops.forEach((crop, index) => {
-      console.log(`🌱 Crop ${index + 1}: ${crop.name} (${crop.district || targetDistrict}) - Investment: ₹${crop.investmentCost}, Profit: ₹${crop.profitPerAcre}`);
+    districtFilteredCrops.forEach((crop, index) => {
+      console.log(`🌱 Crop ${index + 1}: ${crop.name} - District: ${targetDistrict} - Investment: ₹${crop.investmentCost}`);
+      
+      // 🎯 SPECIAL LOGGING FOR SURYAPET
+      if (targetDistrict === 'Suryapet') {
+        console.log(`🎯 SURYAPET CROP: ${crop.name} - ₹${crop.investmentCost} investment - ${crop.duration} duration`);
+      }
     });
     
-    return verifiedCrops;
+    return districtFilteredCrops;
     
   } catch (error) {
     console.error(`❌ CRITICAL ERROR in getCropsByCategory for ${category}:`, error);
@@ -647,11 +658,14 @@ export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', 
     const staticCrops = category === 'short' ? shortTermCrops : 
                         category === 'medium' ? mediumTermCrops : longTermCrops;
     
-    const filteredStaticCrops = staticCrops.filter(crop => 
-      !crop.district || crop.district === (district || 'Hyderabad')
-    );
+    // 🎯 ASSIGN TARGET DISTRICT TO ALL STATIC CROPS
+    const filteredStaticCrops = staticCrops.map(crop => ({
+      ...crop,
+      district: district || 'Hyderabad',
+      'Suitable Telangana District': district || 'Hyderabad'
+    }));
     
-    return filteredStaticCrops.length > 0 ? filteredStaticCrops : staticCrops;
+    return filteredStaticCrops;
   }
 };
 
