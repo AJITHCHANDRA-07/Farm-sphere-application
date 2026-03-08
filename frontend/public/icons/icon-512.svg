@@ -1,0 +1,16 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a"></stop>
+      <stop offset="100%" stop-color="#10b981"></stop>
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" fill="url(#bg)" rx="32"></rect>
+
+  <text x="96" y="88" font-size="70" text-anchor="middle">🌾</text>
+
+  <text x="96" y="140" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">
+    FarmSphere
+  </text>
+</svg>

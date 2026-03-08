@@ -552,40 +552,19 @@ export const translations = {
     },
     // Floating Action Buttons (Home Page)
     floatingButtons: {
-      quickSchemes: {
-        title: "Quick Schemes",
-        content: "Searchable repository of government schemes with smart filters and instant eligibility check.",
-        smartSearch: "Smart Search",
-        smartSearchDesc: "Find schemes by category, loan amount, or eligibility criteria",
-        instantCheck: "Instant Check",
-        instantCheckDesc: "AI-powered eligibility verification in seconds",
+      schemes: {
+        title: "Government Schemes",
+        content: "🔍 Smart Search\nFind schemes by category, loan amount, or eligibility criteria\n\n⚡ Instant Check\nAI-powered eligibility verification in seconds",
         actionButton: "Explore Schemes"
       },
-      networkingHub: {
-        title: "Networking Hub",
-        content: "Connect with farmers, investors, and agri-entrepreneurs. Build partnerships and explore collaborations.",
-        farmerNetwork: "Farmer Network",
-        farmerNetworkDesc: "Connect with 10,000+ verified farmers across India",
-        investorPortal: "Investor Portal",
-        investorPortalDesc: "Access to pre-verified agricultural investors",
+      networking: {
+        title: "Farmer Network",
+        content: "👥 Farmer Network\nConnect with 10,000+ verified farmers across India\n\n💼 Investor Portal\nAccess to pre-verified agricultural investors",
         actionButton: "Join Network"
       },
-      marketTrends: {
-        title: "Market Trends",
-        content: "Real-time price updates, demand forecasts, and market intelligence powered by AI analytics.",
-        wheatPrice: "₹2,450",
-        wheatUnit: "Wheat/Quintal",
-        priceChange: "+12%",
-        changePeriod: "This Month",
-        actionButton: "View Market Data"
-      },
-      ourVision: {
+      vision: {
         title: "Our Vision",
-        content: "FarmSphere aims to revolutionize agriculture through technology, making farming profitable and sustainable for everyone.",
-        mission: "Mission",
-        missionDesc: "Empower 1M+ farmers with technology and data-driven insights",
-        vision2030: "Vision 2030",
-        vision2030Desc: "Make India's agriculture the most profitable and sustainable globally",
+        content: "🎯 Mission\nEmpower 1M+ farmers with technology and data-driven insights\n\n🚀 Vision 2030\nMake India's agriculture the most profitable and sustainable globally",
         actionButton: "Learn More"
       }
     }
@@ -1149,40 +1128,19 @@ export const translations = {
     },
     // Floating Action Buttons (Home Page)
     floatingButtons: {
-      quickSchemes: {
-        title: "त्वरित योजनाएं",
-        content: "स्मार्ट फिल्टर और तत्काल पात्रता जांच के साथ सरकारी योजनाओं का खोज योग्य भंडार।",
-        smartSearch: "स्मार्ट खोज",
-        smartSearchDesc: "श्रेणी, ऋण राशि, या पात्रता मानदंड के अनुसार योजनाएं खोजें",
-        instantCheck: "तत्काल जांच",
-        instantCheckDesc: "सेकंड में AI-संचालित पात्रता सत्यापन",
+      schemes: {
+        title: "सरकारी योजनाएं",
+        content: "🔍 स्मार्ट खोज\nश्रेणी, ऋण राशि, या पात्रता मानदंड के अनुसार योजनाएं खोजें\n\n⚡ तत्काल जांच\nसेकंड में AI-संचालित पात्रता सत्यापन",
         actionButton: "योजनाएं अन्वेषण करें"
       },
-      networkingHub: {
-        title: "नेटवर्किंग हब",
-        content: "किसानों, निवेशकों और कृषि उद्यमियों से जुड़ें। साझेदारी बनाएं और सहयोग का अन्वेषण करें।",
-        farmerNetwork: "किसान नेटवर्क",
-        farmerNetworkDesc: "भारत भर में 10,000+ सत्यापित किसानों से जुड़ें",
-        investorPortal: "निवेशक पोर्टल",
-        investorPortalDesc: "पूर्व-सत्यापित कृषि निवेशकों तक पहुंच",
+      networking: {
+        title: "किसान नेटवर्क",
+        content: "👥 किसान नेटवर्क\nभारत भर में 10,000+ सत्यापित किसानों से जुड़ें\n\n💼 निवेशक पोर्टल\nपूर्व-सत्यापित कृषि निवेशकों तक पहुंच",
         actionButton: "नेटवर्क में शामिल हों"
       },
-      marketTrends: {
-        title: "बाजार रुझान",
-        content: "AI एनालिटिक्स द्वारा संचालित रियल-टाइम मूल्य अपडेट, मांग पूर्वानुमान, और बाजार खुफिया।",
-        wheatPrice: "₹2,450",
-        wheatUnit: "गेहूं/क्विंटल",
-        priceChange: "+12%",
-        changePeriod: "इस महीने",
-        actionButton: "बाजार डेटा देखें"
-      },
-      ourVision: {
+      vision: {
         title: "हमारा दृष्टिकोण",
-        content: "फार्मस्फियर का लक्ष्य प्रौद्योगिकी के माध्यम से कृषि क्रांति लाना है, जिससे सभी के लिए खेती लाभदायक और टिकाऊ बन सके।",
-        mission: "मिशन",
-        missionDesc: "प्रौद्योगिकी और डेटा-संचालित अंतर्दृष्टि के साथ 1M+ किसानों को सशक्त बनाना",
-        vision2030: "विजन 2030",
-        vision2030Desc: "भारत के कृषि को वैश्विक रूप से सबसे अधिक लाभदायक और टिकाऊ बनाना",
+        content: "🎯 मिशन\nप्रौद्योगिकी और डेटा-संचालित अंतर्दृष्टि के साथ 1M+ किसानों को सशक्त बनाना\n\n🚀 विजन 2030\nभारत के कृषि को वैश्विक रूप से सबसे अधिक लाभदायक और टिकाऊ बनाना",
         actionButton: "और अधिक जानें"
       }
     }
@@ -1746,40 +1704,19 @@ export const translations = {
     },
     // Floating Action Buttons (Home Page)
     floatingButtons: {
-      quickSchemes: {
-        title: "త్వరిత పథకాలు",
-        content: "స్మార్ట్ ఫిల్టర్‌లు మరియు తక్షణ అర్హత తనిఖీతో ప్రభుత్వ పథకాల యొక్క శోధనోపయోగి భాండార్.",
-        smartSearch: "స్మార్ట్ శోధన",
-        smartSearchDesc: "వర్గం, రుణ మొత్తం, లేదా అర్హత ప్రమాణాల ద్వారా పథకాలను శోధించండి",
-        instantCheck: "తక్షణ తనిఖీ",
-        instantCheckDesc: "క్షణాలలో AI-ఆధారిత అర్హత ధృవీకరణ",
+      schemes: {
+        title: "ప్రభుత్వ పథకాలు",
+        content: "🔍 స్మార్ట్ శోధన\nవర్గం, రుణ మొత్తం, లేదా అర్హత ప్రమాణాల ద్వారా పథకాలను శోధించండి\n\n⚡ తక్షణ తనిఖీ\nక్షణాలలో AI-ఆధారిత అర్హత ధృవీకరణ",
         actionButton: "పథకాలను అన్వేషించండి"
       },
-      networkingHub: {
-        title: "నెట్‌వర్కింగ్ హబ్",
-        content: "రైతులు, పెట్ట్దారులు మరియు వ్యవసాయ సంస్థాపకులతో అనుసంధానం కలుద్ది. భాగస్వామ్యాలను నిర్మించండి మరియు సహయోగాలను అన్వేషించండి.",
-        farmerNetwork: "రైతు నెట్‌వర్క్",
-        farmerNetworkDesc: "భారతదేశం అంతటా 10,000+ ధృవీకరించబడిన రైతులతో అనుసంధానం కలుద్ది",
-        investorPortal: "పెట్ట్దారు పోర్టల్",
-        investorPortalDesc: "ముందుగా-ధృవీకరించబడిన వ్యవసాయ పెట్ట్దారులకు ప్రాప్తి",
+      networking: {
+        title: "రైతు నెట్‌వర్క్",
+        content: "👥 రైతు నెట్‌వర్క్\nభారతదేశం అంతటా 10,000+ ధృవీకరించబడిన రైతులతో అనుసంధానం కలుద్ది\n\n💼 పెట్ట్దారు పోర్టల్\nముందుగా-ధృవీకరించబడిన వ్యవసాయ పెట్ట్దారులకు ప్రాప్తి",
         actionButton: "నెట్‌వర్క్‌లో చేరండి"
       },
-      marketTrends: {
-        title: "మార్కెట్ ట్రెండ్స్",
-        content: "AI యానలిటిక్స్ ద్వారా నిర్వహించబడే రియల్-టైమ్ ధర నవీకరణలు, డిమాండ్ అంచనాలు మరియు మార్కెట్ ఇంటెలిజెన్స్.",
-        wheatPrice: "₹2,450",
-        wheatUnit: "గోధుమ/క్వింటాల్",
-        priceChange: "+12%",
-        changePeriod: "ఈ నెల",
-        actionButton: "మార్కెట్ డేటాను వీక్షించండి"
-      },
-      ourVision: {
+      vision: {
         title: "మా దృక్పం",
-        content: "ఫార్మ్‌స్ఫియర్ యొక్క లక్ష్యం సాంకేతిక ద్వారా వ్యవసాయంలో విప్లవం తీసుకోవడం, అందరు కోసం వ్యవసాయాన్ని లాభదాయకం మరియు స్థిరమైనదిగా చేయడం.",
-        mission: "మిషన్",
-        missionDesc: "సాంకేతిక మరియు డేటా-ఆధారిత అంతర్దృష్టులతో 1M+ రైతులను శక్తివంతం చేయడం",
-        vision2030: "విజన్ 2030",
-        vision2030Desc: "భారతదేశం యొక్క వ్యవసాయాన్ని ప్రపంచంలోనే అత్యధిక లాభదాయకం మరియు స్థిరమైనదిగా చేయడం",
+        content: "🎯 మిషన్\nసాంకేతిక మరియు డేటా-ఆధారిత అంతర్దృష్టులతో 1M+ రైతులను శక్తివంతం చేయడం\n\n🚀 విజన్ 2030\nభారతదేశం యొక్క వ్యవసాయాన్ని ప్రపంచంలోనే అత్యధిక లాభదాయకం మరియు స్థిరమైనదిగా చేయడం",
         actionButton: "మరింత తెలుసుకోండి"
       }
     }
