@@ -138,17 +138,7 @@ const CropDetailModal = ({ crop, isOpen, onClose }: CropDetailModalProps) => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Original Demand Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Badge variant={(crop as any).originalDemandStatus === 'Very High' ? 'default' : 'secondary'}>
-                    {(crop as any).originalDemandStatus || 'Not specified'}
-                  </Badge>
-                </CardContent>
-              </Card>
-
+              
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Risk Factors</CardTitle>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Mail, 
   Phone, 
@@ -20,8 +20,13 @@ import {
   Users,
   Headphones
 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
 
 const Contact = () => {
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,8 +35,30 @@ const Contact = () => {
     message: ''
   });
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+
+  // Clear success/error messages after 2 minutes
+  useEffect(() => {
+    if (submitSuccess) {
+      const timer = setTimeout(() => {
+        setSubmitSuccess(false);
+      }, 120000); // 2 minutes in milliseconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [submitSuccess]);
+
+  useEffect(() => {
+    if (submitError) {
+      const timer = setTimeout(() => {
+        setSubmitError(false);
+      }, 120000); // 2 minutes in milliseconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [submitError]);
 
   const handleChange = (e) => {
     setFormData({
@@ -42,7 +69,7 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setSubmitting(true);
     
     try {
       // Create mailto link with form data
@@ -58,8 +85,8 @@ const Contact = () => {
       
       // Show success message after a delay
       setTimeout(() => {
-        setIsSubmitted(true);
-        setIsSubmitting(false);
+        setSubmitSuccess(true);
+        setSubmitting(false);
         setFormData({
           name: '',
           email: '',
@@ -71,77 +98,82 @@ const Contact = () => {
       
     } catch (error) {
       console.error('Error submitting form:', error);
-      setIsSubmitting(false);
+      setSubmitError(true);
+      setSubmitting(false);
     }
   };
 
   const contactInfo = [
     {
       icon: Mail,
-      label: 'Email',
+      labelKey: 'contact.emailLabel',
       value: 'farmsphere@gmail.com',
-      action: 'mailto:farmsphere@gmail.com'
+      action: 'mailto:farmsphere@gmail.com',
+      actionKey: 'contact.sendEmail'
     },
     {
       icon: Phone,
-      label: 'Phone',
+      labelKey: 'contact.phoneLabel',
       value: '+91-91234-56789',
-      action: 'tel:+919123456789'
+      action: 'tel:+919123456789',
+      actionKey: 'contact.callNow'
     },
     {
       icon: MapPin,
-      label: 'Head Office',
+      labelKey: 'contact.headOfficeLabel',
       value: 'Hyderabad, Telangana, India',
-      action: 'https://maps.google.com/?q=Hyderabad,Telangana,India'
+      action: 'https://maps.google.com/?q=Hyderabad,Telangana,India',
+      actionKey: 'contact.getDirections'
     },
     {
       icon: Clock,
-      label: 'Business Hours',
+      labelKey: 'contact.businessHoursLabel',
       value: 'Mon-Fri: 9:00 AM - 6:00 PM',
-      action: null
+      action: null,
+      actionKey: null
     }
   ];
 
   const services = [
     {
       icon: Users,
-      title: 'Farmer Support',
-      description: 'Dedicated support for farmers with crop guidance and market information'
+      titleKey: 'contact.farmerSupport',
+      descKey: 'contact.farmerSupportDesc'
     },
     {
       icon: Building,
-      title: 'Business Partnerships',
-      description: 'Collaborate with us for agricultural development and market expansion'
+      titleKey: 'contact.businessPartnerships',
+      descKey: 'contact.businessPartnershipsDesc'
     },
     {
       icon: Globe,
-      title: 'Global Reach',
-      description: 'Connecting Telangana farmers with national and international markets'
+      titleKey: 'contact.globalReach',
+      descKey: 'contact.globalReachDesc'
     },
     {
       icon: Shield,
-      title: 'Trusted Platform',
-      description: 'Secure and reliable platform for all agricultural trading needs'
+      titleKey: 'contact.trustedPlatform',
+      descKey: 'contact.trustedPlatformDesc'
     }
   ];
 
   const testimonials = [
     {
-      name: 'Ramesh Reddy',
-      role: 'Farmer, Karimnagar',
-      content: 'FarmSphere helped me connect with the right markets and get better prices for my crops.',
+      nameKey: 'contact.testimonial1Name',
+      roleKey: 'contact.testimonial1Role',
+      contentKey: 'contact.testimonial1Content',
       rating: 5
     },
     {
-      name: 'Sunita Patel',
-      role: 'Agricultural Trader',
-      content: 'Excellent platform for finding quality produce and reliable farmers across Telangana.',
+      nameKey: 'contact.testimonial2Name',
+      roleKey: 'contact.testimonial2Role',
+      contentKey: 'contact.testimonial2Content',
       rating: 5
     },
     {
-      name: 'Mohan Kumar',
-      role: 'Farm Owner, Warangal',
-      content: 'The market insights and crop recommendations have transformed my farming business.',
+      nameKey: 'contact.testimonial3Name',
+      roleKey: 'contact.testimonial3Role',
+      contentKey: 'contact.testimonial3Content',
       rating: 5
     }
   ];
@@ -155,49 +187,57 @@ const Contact = () => {
     ));
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center p-8">
-          <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h2>
-          <p className="text-lg text-gray-600 mb-6">
-            Your message has been sent successfully. We'll get back to you soon.
-          </p>
-          <button
-            onClick={() => setIsSubmitted(false)}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Send Another Message
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 text-white">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div className="min-h-screen bg-[#f8fafc]">
+      {/* Hero Section - Professional Background */}
+      <section className="relative overflow-hidden" style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)',
+      }}>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Contact FarmSphere
+            {/* Professional Badge */}
+            <div className="inline-flex items-center px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-full text-gray-200 text-sm font-medium mb-6">
+              <Shield className="w-4 h-4 mr-2" />
+              {t('contact.trustedPlatform')}
+            </div>
+            
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+              {t('contact.title')}
             </h1>
-            <p className="text-xl text-green-100 max-w-3xl mx-auto mb-8">
-              We're here to help you grow. Connect with us for all your agricultural needs.
+            <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed">
+              {t('contact.subtitle')}
             </p>
-            <div className="flex justify-center space-x-4">
-              <div className="flex items-center">
-                <Headphones className="w-6 h-6 mr-2" />
-                <span>24/7 Support Available</span>
+            
+            {/* Trust Indicators */}
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-16">
+              <div className="flex items-center px-6 py-3 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-full">
+                <Headphones className="w-6 h-6 mr-3 text-gray-400" />
+                <span className="text-gray-200 font-medium">{t('contact.support247')}</span>
               </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-6 h-6 mr-2" />
-                <span>Trusted by 10,000+ Farmers</span>
+              <div className="flex items-center px-6 py-3 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-full">
+                <Users className="w-6 h-6 mr-3 text-gray-400" />
+                <span className="text-gray-200 font-medium">{t('contact.trusted')}</span>
+              </div>
+            </div>
+            
+            {/* Stats Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-white mb-2">24/7</div>
+                <div className="text-gray-400 text-sm">Support Available</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-white mb-2">100+</div>
+                <div className="text-gray-400 text-sm">Happy Farmers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-white mb-2">99%</div>
+                <div className="text-gray-400 text-sm">Response Rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-white mb-2">5★</div>
+                <div className="text-gray-400 text-sm">Service Rating</div>
               </div>
             </div>
           </div>
@@ -215,7 +255,7 @@ const Contact = () => {
                     <info.icon className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{info.label}</h3>
+                    <h3 className="font-semibold text-gray-900">{t(info.labelKey)}</h3>
                   </div>
                 </div>
                 <p className="text-gray-600 mb-4">{info.value}</p>
@@ -224,7 +264,7 @@ const Contact = () => {
                     href={info.action}
                     className="text-green-600 hover:text-green-700 font-medium text-sm flex items-center"
                   >
-                    {info.label === 'Email' ? 'Send Email' : info.label === 'Phone' ? 'Call Now' : 'Get Directions'}
+                    {t(info.actionKey)}
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </a>
                 )}
@@ -241,9 +281,9 @@ const Contact = () => {
             {/* Contact Form */}
             <div>
               <div className="bg-white rounded-2xl shadow-xl p-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Get in Touch</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{t('contact.getInTouch')}</h2>
                 <p className="text-gray-600 mb-8">
-                  Fill out the form below and we'll respond to your inquiry as soon as possible.
+                  {t('contact.formDescription')}
                 </p>
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -251,7 +291,7 @@ const Contact = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <User className="w-4 h-4 inline mr-1" />
-                        Your Name *
+                        {t('contact.yourName')} *
                       </label>
                       <input
                         type="text"
@@ -260,14 +300,14 @@ const Contact = () => {
                         onChange={handleChange}
                         required
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="John Doe"
+                        placeholder={t('contact.namePlaceholder')}
                       />
                     </div>
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Mail className="w-4 h-4 inline mr-1" />
-                        Email Address *
+                        {t('contact.emailAddress')} *
                       </label>
                       <input
                         type="email"
@@ -276,7 +316,7 @@ const Contact = () => {
                         onChange={handleChange}
                         required
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="john@example.com"
+                        placeholder={t('contact.emailPlaceholder')}
                       />
                     </div>
                   </div>
@@ -284,7 +324,7 @@ const Contact = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Phone className="w-4 h-4 inline mr-1" />
-                      Phone Number
+                      {t('contact.phoneNumber')}
                     </label>
                     <input
                       type="tel"
@@ -292,14 +332,14 @@ const Contact = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="+91-91234-56789"
+                      placeholder={t('contact.phonePlaceholder')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4 inline mr-1" />
-                      Subject *
+                      {t('contact.subject')} *
                     </label>
                     <input
                       type="text"
@@ -308,14 +348,14 @@ const Contact = () => {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="How can we help you?"
+                      placeholder={t('contact.subjectPlaceholder')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <MessageSquare className="w-4 h-4 inline mr-1" />
-                      Message *
+                      {t('contact.message')} *
                     </label>
                     <textarea
                       name="message"
@@ -324,31 +364,54 @@ const Contact = () => {
                       required
                       rows={6}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Tell us more about your inquiry..."
+                      placeholder={t('contact.messagePlaceholder')}
                     ></textarea>
                   </div>
                   
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={submitting}
                     className="w-full bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
-                    {isSubmitting ? (
-                      <span>Sending...</span>
-                    ) : (
-                      <>
-                        <Send className="w-5 h-5 mr-2" />
-                        Send Message
-                      </>
-                    )}
+                    {submitting ? t('contact.sending') : t('contact.sendMessage')}
                   </button>
                 </form>
+                
+                {submitSuccess && (
+                  <div style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    color: '#16a34a',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    marginTop: '16px'
+                  }}>
+                    {t('contact.successMessage')}
+                  </div>
+                )}
+
+                {submitError && (
+                  <div style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    color: '#dc2626',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    marginTop: '16px'
+                  }}>
+                    {t('contact.errorMessage')}
+                  </div>
+                )}
               </div>
             </div>
             
             {/* Services */}
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">How We Can Help</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-8">{t('contact.howWeCanHelp')}</h2>
               <div className="space-y-6">
                 {services.map((service, index) => (
                   <div key={index} className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
@@ -357,8 +420,8 @@ const Contact = () => {
                         <service.icon className="w-6 h-6 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{service.title}</h3>
-                        <p className="text-gray-600">{service.description}</p>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{t(service.titleKey)}</h3>
+                        <p className="text-gray-600">{t(service.descKey)}</p>
                       </div>
                     </div>
                   </div>
@@ -367,7 +430,7 @@ const Contact = () => {
               
               {/* Social Media */}
               <div className="mt-12">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Follow Us</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('contact.followUs')}</h3>
                 <div className="flex space-x-4">
                   <a
                     href="https://facebook.com"
@@ -404,9 +467,9 @@ const Contact = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">What Our Users Say</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('contact.whatUsersSay')}</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Trusted by thousands of farmers and agricultural businesses across Telangana
+              {t('contact.usersSubtitle')}
             </p>
           </div>
           
@@ -416,14 +479,14 @@ const Contact = () => {
                 <div className="flex mb-4">
                   {renderStars(testimonial.rating)}
                 </div>
-                <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                <p className="text-gray-700 mb-4 italic">"{t(testimonial.contentKey)}"</p>
                 <div className="flex items-center">
                   <div className="bg-green-100 rounded-full p-2 w-10 h-10 flex items-center justify-center mr-3">
                     <User className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
+                    <h4 className="font-semibold text-gray-900">{t(testimonial.nameKey)}</h4>
+                    <p className="text-sm text-gray-600">{t(testimonial.roleKey)}</p>
                   </div>
                 </div>
               </div>
@@ -436,46 +499,46 @@ const Contact = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('contact.faq')}</h2>
             <p className="text-lg text-gray-600">
-              Quick answers to common questions about FarmSphere
+              {t('contact.faqSubtitle')}
             </p>
           </div>
           
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                How do I start using FarmSphere?
+                {t('contact.faq1Question')}
               </h3>
               <p className="text-gray-600">
-                Simply sign up for a free account, complete your profile, and start exploring our marketplace and crop recommendations.
+                {t('contact.faq1Answer')}
               </p>
             </div>
             
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Is FarmSphere free for farmers?
+                {t('contact.faq2Question')}
               </h3>
               <p className="text-gray-600">
-                Yes, basic features are free for farmers. Premium features are available for businesses and large-scale operations.
+                {t('contact.faq2Answer')}
               </p>
             </div>
             
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                How accurate are the market prices?
+                {t('contact.faq3Question')}
               </h3>
               <p className="text-gray-600">
-                Our market prices are updated daily from verified sources across Telangana agricultural markets.
+                {t('contact.faq3Answer')}
               </p>
             </div>
             
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Can I connect directly with buyers?
+                {t('contact.faq4Question')}
               </h3>
               <p className="text-gray-600">
-                Yes, FarmSphere facilitates direct connections between farmers and verified buyers across the state.
+                {t('contact.faq4Answer')}
               </p>
             </div>
           </div>

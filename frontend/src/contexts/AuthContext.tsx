@@ -1,96 +1,58 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-}
+import { supabase } from '../lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  session: Session | null;
   loading: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    console.log('🔐 AuthContext - Initializing auth state...');
     
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    // ✅ Get current session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔐 AuthContext - Session loaded:', { hasSession: !!session, hasUser: !!session?.user });
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // ✅ Listen for auth state changes in real time
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('🔐 AuthContext - Auth state changed:', { event: _event, hasSession: !!session, hasUser: !!session?.user });
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      // Simulate API call
-      const mockUser: User = {
-        id: '1',
-        name: 'John Doe',
-        email: email,
-        avatar: 'https://via.placeholder.com/150'
-      };
-      
-      localStorage.setItem('token', 'mock-jwt-token');
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    try {
-      // Simulate API call
-      const mockUser: User = {
-        id: Date.now().toString(),
-        name: name,
-        email: email,
-        avatar: 'https://via.placeholder.com/150'
-      };
-      
-      localStorage.setItem('token', 'mock-jwt-token');
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
   };
 
-  const value = {
-    user,
-    login,
-    signup,
-    logout,
-    loading,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, session, loading, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

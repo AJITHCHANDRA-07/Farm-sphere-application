@@ -23,6 +23,20 @@ interface InvestmentData {
   "Complete Plan": string;
   "Annual ROI & Payback": string;
   Profit: string;
+  investment_image?: string;
+}
+
+interface InvestmentImageData {
+  id?: number;
+  Name?: string;
+  'Investment Name'?: string;
+  investment_name?: string;
+  URL?: string;
+  url?: string;
+  Url?: string;
+  Image?: string;
+  image?: string;
+  investment_image?: string;
 }
 
 const InvestmentsPage = () => {
@@ -50,18 +64,86 @@ const InvestmentsPage = () => {
 
   const fetchInvestments = async () => {
     try {
-      const { data, error } = await supabase
+      // 🎯 FETCH INVESTMENTS DATA
+      const { data: investmentsData, error: investmentsError } = await supabase
         .from('Investments')
         .select('*')
         .order('Id', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching investments:', error);
+      if (investmentsError) {
+        console.error('Error fetching investments:', investmentsError);
         setLoading(false);
         return;
       }
 
-      setInvestments(data || []);
+      // 🎯 FETCH INVESTMENT IMAGE URLS FROM Investments_URL TABLE
+      const { data: investmentImages, error: imagesError } = await supabase
+        .from('Investments_URL')
+        .select('*');
+
+      if (imagesError) {
+        console.error('Error fetching investment images:', imagesError);
+      } else {
+        console.log('🖼️ Investment images fetched:', investmentImages?.length || 0);
+        console.log('🔍 Investment image columns:', investmentImages?.[0] ? Object.keys(investmentImages[0]) : []);
+        console.log('📝 Sample investment image data:', investmentImages?.[0]);
+        
+        // 🔹 DEBUG ALL INVESTMENT IMAGES
+        if (investmentImages && investmentImages.length > 0) {
+          console.log('🔍 ALL INVESTMENT IMAGES:');
+          investmentImages.forEach((img, index) => {
+            console.log(`🖼️ IMAGE ${index + 1}:`, {
+              'Name': img.Name,
+              'Investment Name': img['Investment Name'],
+              'investment_name': img.investment_name,
+              'URL': img.URL,
+              'url': img.url,
+              'Image': img.Image,
+              'image': img.image
+            });
+          });
+        }
+      }
+
+      // 🎯 MERGE INVESTMENT DATA WITH IMAGE URLS
+      const mergedInvestments = (investmentsData || []).map(investment => {
+        // Find corresponding image for this investment
+        const investmentImage = investmentImages?.find(img => {
+          const imgInvestmentName = img.Name || img['Investment Name'] || img.investment_name;
+          const investmentName = investment.Name;
+          return imgInvestmentName === investmentName;
+        });
+
+        // 🔹 DEBUG MATCHING PROCESS
+        console.log(`🔍 Matching investment: "${investment.Name}"`);
+        if (investmentImage) {
+          console.log(`✅ Found image for ${investment.Name}:`, investmentImage);
+        } else {
+          console.log(`❌ No image found for ${investment.Name}`);
+          // Show available investment names for debugging
+          const availableInvestmentNames = investmentImages?.map(img => 
+            img.Name || img['Investment Name'] || img.investment_name
+          ).filter(Boolean);
+          console.log(`📍 Available investment names in images table:`, availableInvestmentNames);
+        }
+
+        // Extract image URL with multiple fallback column names
+        const imageUrl = investmentImage?.URL || 
+                         investmentImage?.url || 
+                         investmentImage?.Url || 
+                         investmentImage?.Image || 
+                         investmentImage?.image || 
+                         investmentImage?.investment_image;
+
+        console.log(`🖼️ ${investment.Name} - Image URL: "${imageUrl || 'No image found'}"`);
+
+        return {
+          ...investment,
+          investment_image: imageUrl
+        };
+      });
+
+      setInvestments(mergedInvestments);
       setLoading(false);
     } catch (error) {
       console.error('Error:', error);
@@ -175,15 +257,25 @@ const InvestmentsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800">{t('common.loading')}</h2>
-          <p className="text-gray-600 mt-2">Finding the best long-term agricultural investments for you</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-lg font-medium">Loading investments...</p>
         </div>
       </div>
     );
   }
+
+  // 🔹 DEBUG: Show first few investments with image data
+  console.log('🔍 DEBUG - First 3 investments with images:');
+  investments.slice(0, 3).forEach((investment, index) => {
+    console.log(`📊 Investment ${index + 1}:`, {
+      'name': investment.Name,
+      'has_image': !!investment.investment_image,
+      'image_url': investment.investment_image,
+      'image_length': investment.investment_image?.length || 0
+    });
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
@@ -259,8 +351,27 @@ const InvestmentsPage = () => {
               onClick={() => openModal(investment)}
             >
               <CardContent className="p-6">
-                <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                  <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted relative">
+                  {investment.investment_image ? (
+                    <img 
+                      src={investment.investment_image}
+                      alt={investment.Name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => {
+                        console.log(`✅ Successfully loaded investment image for ${investment.Name}:`, investment.investment_image);
+                      }}
+                      onError={(e) => {
+                        console.log(`❌ Failed to load investment image for ${investment.Name}:`, investment.investment_image);
+                        // Hide failed image and show fallback
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                        if (fallback) {
+                          (fallback as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div className="image-fallback w-full h-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center" style={{display: investment.investment_image ? 'none' : 'flex'}}>
                     <Building className="h-12 w-12 text-green-600" />
                   </div>
                 </div>
@@ -301,10 +412,22 @@ const InvestmentsPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 space-y-6">
-                {/* Modal Header */}
-                <div className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700 text-white p-6 rounded-t-xl">
-                  <div className="flex justify-between items-start">
-                    <div>
+                {/* Modal Header with Image */}
+                {selectedInvestment.investment_image && (
+                  <div className="relative h-48 overflow-hidden rounded-t-xl">
+                    <img 
+                      src={selectedInvestment.investment_image}
+                      alt={selectedInvestment.Name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log(`❌ Failed to load modal image for ${selectedInvestment.Name}:`, selectedInvestment.investment_image);
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'block';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
                       <h2 className="text-3xl font-black mb-2 tracking-wide">
                         {selectedInvestment.Name}
                       </h2>
@@ -313,12 +436,33 @@ const InvestmentsPage = () => {
                     <Button
                       onClick={closeModal}
                       variant="ghost"
-                      className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
+                      className="absolute top-4 right-4 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
                     >
                       ✕
                     </Button>
                   </div>
-                </div>
+                )}
+                
+                {/* Modal Header (when no image) */}
+                {!selectedInvestment.investment_image && (
+                  <div className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700 text-white p-6 rounded-t-xl">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h2 className="text-3xl font-black mb-2 tracking-wide">
+                          {selectedInvestment.Name}
+                        </h2>
+                        <p className="text-lg opacity-90 font-medium">💰 Long-Term Agricultural Investment</p>
+                      </div>
+                      <Button
+                        onClick={closeModal}
+                        variant="ghost"
+                        className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <Tabs defaultValue="overview" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">

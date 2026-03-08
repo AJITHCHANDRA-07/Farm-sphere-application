@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useTranslation } from "../lib/translations";
 
 const HighDemandCropsTeaser = () => {
   const navigate = useNavigate();
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
 
   const handleExploreCrops = () => {
     navigate("/explore-crops");
@@ -15,12 +19,12 @@ const HighDemandCropsTeaser = () => {
           <div className="space-y-8">
             {/* Main Title */}
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-              🌱 Low Supply High Demand Crops    
+              {t('contact.lowSupplyHighDemand')}    
             </h2>
             
             {/* Description */}
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Discover profitable crops with high market demand and optimize your farming strategy
+              {t('contact.lowSupplyHighDemandDesc')}
             </p>
             
             {/* Explore Button */}
@@ -28,16 +32,16 @@ const HighDemandCropsTeaser = () => {
               <Button 
                 variant="professional" 
                 size="lg" 
-                className="px-12 py-4 text-lg md:text-xl font-semibold"
+                className="px-6 py-3 md:px-12 md:py-4 text-base md:text-lg lg:text-xl font-semibold w-full md:w-auto min-w-[140px] md:min-w-[160px] break-words text-center"
                 onClick={handleExploreCrops}
               >
-                Explore Crops
+                <span className="truncate">{t('contact.exploreCrops')}</span>
               </Button>
             </div>
             
             {/* Subtle Hint */}
             <p className="text-sm text-muted-foreground">
-              Discover interactive crop insights with advanced visualization
+              {t('contact.cropInsightsInteractive')}
             </p>
           </div>
         </div>

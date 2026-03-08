@@ -90,7 +90,7 @@ const ExploreSchemes: React.FC = () => {
   const [allSchemes, setAllSchemes] = useState<SchemeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedScheme, setSelectedScheme] = useState<SchemeData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [queryForm, setQueryForm] = useState<QueryForm>({
@@ -261,7 +261,7 @@ const ExploreSchemes: React.FC = () => {
           id: 1,
           slug: "pm-kisan-samman-nidhi",
           name: "PM-Kisan Samman Nidhi",
-          type: "DBT",
+          type: "Central",
           description: "Direct income support scheme for farmers",
           subsidy: "₹6,000 per year",
           governingMinistry: "Ministry of Agriculture & Farmers Welfare",
@@ -286,7 +286,7 @@ const ExploreSchemes: React.FC = () => {
           id: 2,
           slug: "pradhan-mantri-fasal-bima-yojana",
           name: "Pradhan Mantri Fasal Bima Yojana",
-          type: "Insurance",
+          type: "Central",
           description: "Crop insurance scheme for farmers",
           subsidy: "Premium subsidy up to 90%",
           governingMinistry: "Ministry of Agriculture & Farmers Welfare",
@@ -306,206 +306,6 @@ const ExploreSchemes: React.FC = () => {
           priorityLevel: 2,
           isActive: true,
           sources: ["https://pmfby.gov.in/"]
-        },
-        {
-          id: 3,
-          slug: "agriculture-infrastructure-fund",
-          name: "Agriculture Infrastructure Fund",
-          type: "Infrastructure",
-          description: "Infrastructure development scheme for agriculture",
-          subsidy: "Interest subvention and credit support",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To develop agricultural infrastructure and provide credit support",
-          maxAmount: "₹1 Lakh Crore",
-          interestRate: "3% interest subvention",
-          targetBeneficiary: "Farmers, FPOs, Agri-entrepreneurs",
-          collateral: "As per bank norms",
-          statusTracking: "Available on portal",
-          benefits: "Infrastructure development and credit support",
-          applicationProcess: "Apply through designated banks and financial institutions",
-          documentsRequired: "Project report, land documents, KYC",
-          creditScore: "As per bank norms",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://agriminfra.nic.in/",
-          image: "",
-          priorityLevel: 3,
-          isActive: true,
-          sources: ["https://agriminfra.nic.in/"]
-        },
-        {
-          id: 4,
-          slug: "kisan-credit-card",
-          name: "Kisan Credit Card",
-          type: "Loan",
-          description: "Credit facility for farmers",
-          subsidy: "Interest subvention available",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To provide timely credit support to farmers",
-          maxAmount: "Based on land holding",
-          interestRate: "7% (with subvention)",
-          targetBeneficiary: "All farmers",
-          collateral: "Land as security",
-          statusTracking: "Available on bank portal",
-          benefits: "Easy credit access for agricultural needs",
-          applicationProcess: "Apply through any commercial bank, regional rural bank, or cooperative bank",
-          documentsRequired: "Land records, Aadhaar, PAN, bank details",
-          creditScore: "Not mandatory",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://www.kisancreditcard.gov.in/",
-          image: "",
-          priorityLevel: 4,
-          isActive: true,
-          sources: ["https://www.kisancreditcard.gov.in/"]
-        },
-        {
-          id: 5,
-          slug: "pm-kisan-maandhan",
-          name: "Pradhan Mantri Kisan Maandhan",
-          type: "Pension",
-          description: "Pension scheme for small and marginal farmers",
-          subsidy: "Government contribution",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To provide social security to small and marginal farmers",
-          maxAmount: "₹3,000 monthly pension",
-          interestRate: "N/A",
-          targetBeneficiary: "Small and marginal farmers aged 18-40",
-          collateral: "Not Applicable",
-          statusTracking: "Available on PM-KMY portal",
-          benefits: "Monthly pension after attaining 60 years of age",
-          applicationProcess: "Self-enroll online at Common Service Centre (CSC) or online portal",
-          documentsRequired: "Aadhaar Card, land records, bank details, age proof",
-          creditScore: "Not Applicable",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://pmkisanmaandhan.gov.in/",
-          image: "",
-          priorityLevel: 5,
-          isActive: true,
-          sources: ["https://pmkisanmaandhan.gov.in/"]
-        },
-        {
-          id: 6,
-          slug: "national-mission-natural-farming",
-          name: "National Mission on Natural Farming",
-          type: "Mission",
-          description: "Mission for promoting natural farming",
-          subsidy: "Training and certification support",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To promote natural farming practices",
-          maxAmount: "Training support",
-          interestRate: "N/A",
-          targetBeneficiary: "All farmers interested in natural farming",
-          collateral: "Not Applicable",
-          statusTracking: "Available on mission portal",
-          benefits: "Training and certification for natural farming",
-          applicationProcess: "Apply through designated training centers",
-          documentsRequired: "Aadhaar Card, land documents",
-          creditScore: "Not Applicable",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://nmnf.gov.in/",
-          image: "",
-          priorityLevel: 6,
-          isActive: true,
-          sources: ["https://nmnf.gov.in/"]
-        },
-        {
-          id: 7,
-          slug: "e-nam-platform",
-          name: "e-NAM",
-          type: "Platform",
-          description: "Online trading platform for agricultural commodities",
-          subsidy: "No transaction fee for farmers",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To create a unified national market for agricultural commodities",
-          maxAmount: "No limit",
-          interestRate: "N/A",
-          targetBeneficiary: "All farmers and traders",
-          collateral: "Not Applicable",
-          statusTracking: "Available on e-NAM portal",
-          benefits: "Better price discovery and transparent trading",
-          applicationProcess: "Register online on e-NAM portal",
-          documentsRequired: "Aadhaar Card, PAN, bank details",
-          creditScore: "Not Applicable",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://enam.gov.in/",
-          image: "",
-          priorityLevel: 7,
-          isActive: true,
-          sources: ["https://enam.gov.in/"]
-        },
-        {
-          id: 8,
-          slug: "soil-health-card-scheme",
-          name: "Soil Health Card Scheme",
-          type: "Service",
-          description: "Soil testing and health card service",
-          subsidy: "Free soil testing",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To promote soil test based nutrient management",
-          maxAmount: "Free service",
-          interestRate: "N/A",
-          targetBeneficiary: "All farmers",
-          collateral: "Not Applicable",
-          statusTracking: "Available on SHC portal",
-          benefits: "Soil health information and fertilizer recommendations",
-          applicationProcess: "Apply through agriculture department or online",
-          documentsRequired: "Aadhaar Card, land documents",
-          creditScore: "Not Applicable",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://soilhealth.gov.in/",
-          image: "",
-          priorityLevel: 8,
-          isActive: true,
-          sources: ["https://soilhealth.gov.in/"]
-        },
-        {
-          id: 9,
-          slug: "organic-certification-scheme",
-          name: "Organic Certification Scheme",
-          type: "Certification Scheme",
-          description: "Certification scheme for organic farming",
-          subsidy: "Certification cost support",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To promote organic farming and certification",
-          maxAmount: "Certification support",
-          interestRate: "N/A",
-          targetBeneficiary: "Organic farmers",
-          collateral: "Not Applicable",
-          statusTracking: "Available on certification portal",
-          benefits: "Organic certification and market access",
-          applicationProcess: "Apply through accredited certification agencies",
-          documentsRequired: "Farm details, organic farming practices",
-          creditScore: "Not Applicable",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://pgsindia.gov.in/",
-          image: "",
-          priorityLevel: 9,
-          isActive: true,
-          sources: ["https://pgsindia.gov.in/"]
-        },
-        {
-          id: 10,
-          slug: "interest-subvention-scheme",
-          name: "Interest Subvention Scheme",
-          type: "Subsidy",
-          description: "Interest subvention on crop loans",
-          subsidy: "2% interest subvention",
-          governingMinistry: "Ministry of Agriculture & Farmers Welfare",
-          objective: "To provide affordable credit to farmers",
-          maxAmount: "₹3 Lakh per farmer",
-          interestRate: "2% subvention",
-          targetBeneficiary: "All farmers with crop loans",
-          collateral: "As per loan requirements",
-          statusTracking: "Available on bank portal",
-          benefits: "Reduced interest burden on crop loans",
-          applicationProcess: "Available through all scheduled commercial banks",
-          documentsRequired: "Loan documents, land records",
-          creditScore: "As per bank norms",
-          helpdeskNumber: "1800-11-0000",
-          officialApplyLink: "https://www.gov.in/",
-          image: "",
-          priorityLevel: 10,
-          isActive: true,
-          sources: ["https://www.gov.in/"]
         }
       ];
       setAllSchemes(mockSchemes);
@@ -570,91 +370,31 @@ const ExploreSchemes: React.FC = () => {
     }
   };
 
-  const getTypeColor = (type: string) => {
-    if (type.toLowerCase().includes('credit')) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (type.toLowerCase().includes('subsidy')) return 'bg-green-100 text-green-800 border-green-200';
-    // ... rest of your code remains the same ...
-    if (type.toLowerCase().includes('insurance')) return 'bg-purple-100 text-purple-800 border-purple-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getTypeBadgeColor = (type: string) => {
-    if (type.toLowerCase().includes('credit')) return 'bg-blue-600 hover:bg-blue-700';
-    if (type.toLowerCase().includes('subsidy')) return 'bg-green-600 hover:bg-green-700';
-    if (type.toLowerCase().includes('insurance')) return 'bg-purple-600 hover:bg-purple-700';
-    return 'bg-gray-600 hover:bg-gray-700';
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleCategoryChange = (category: string) => {
-    console.log('CATEGORY CHANGE - From:', categoryFilter, 'To:', category);
-    setCategoryFilter(category);
-  };
-
-  // Copy exact filtering logic from Investments page with useMemo and deduplication
-  const filteredSchemes = useMemo(() => {
-    console.log('=== SCHEME TYPES DEBUG ===');
-    console.log('Available scheme types:', allSchemes.map(s => ({ name: s.name, type: s.type })));
-    console.log('Current categoryFilter:', categoryFilter);
-    
-    const filtered = allSchemes
-      .filter(scheme => {
-        const matchesSearch = scheme.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const schemeType = scheme.type?.toLowerCase() || '';
-        const filterType = categoryFilter?.toLowerCase() || '';
-        const matchesCategory = categoryFilter === 'all' || schemeType === filterType;
-        
-        console.log(`Filter check for "${scheme.name}":`, {
-          schemeType,
-          filterType,
-          categoryFilter,
-          matchesCategory,
-          matchesSearch
-        });
-        
-        return matchesSearch && matchesCategory;
-      })
-      .filter((scheme, index, arr) => 
-        // Remove duplicates based on scheme name
-        arr.findIndex(s => s.name === scheme.name) === index
-      );
-      
-    console.log('=== FILTERED SCHEMES ===');
-    console.log('Filtered schemes count:', filtered.length);
-    console.log('Filtered schemes:', filtered.map(s => s.name));
-    
-    return filtered;
-  }, [allSchemes, searchTerm, categoryFilter]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800">{t('common.loading')}</h2>
-          <p className="text-gray-600 mt-2">{t('contact.loadingSchemes')}</p>
-        </div>
-      </div>
-    );
   }
 
-  // 🔹 DEBUG: Show first few schemes with image data
-  console.log('🔍 DEBUG - First 3 schemes with images:');
-  allSchemes.slice(0, 3).forEach((scheme, index) => {
-    console.log(`📊 Scheme ${index + 1}:`, {
-      'name': scheme.name,
-      'has_image': !!scheme.image,
-      'image_url': scheme.image,
-      'image_length': scheme.image?.length || 0
+  if (selectedCategory !== 'all' && selectedCategory !== '') {
+    result = result.filter(scheme => {
+      const schemeValues = Object.values(scheme)
+        .filter(v => typeof v === 'string')
+        .join(' ')
+        .toLowerCase();
+      return schemeValues.includes(
+        selectedCategory.toLowerCase()
+      );
     });
-  });
+  }
 
+  console.log('FILTERED RESULT:', result.length);
+  return result;
+}, [allSchemes, searchTerm, selectedCategory]);
+
+if (loading) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800">{t('common.loading')}</h2>
+        <p className="text-gray-600 mt-2">{t('contact.loadingSchemes')}</p>
       <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 text-white">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center">
@@ -708,11 +448,11 @@ const ExploreSchemes: React.FC = () => {
             </div>
             
             <select
-              value={categoryFilter}
+              value={selectedCategory}
               onChange={(e) => handleCategoryChange(e.target.value)}
               className="p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="all">All Types</option>
+              <option value="all">{t('contact.allTypes')}</option>
               <option value="subsidy">Subsidy</option>
               <option value="loan">Loan</option>
               <option value="platform">Platform</option>
@@ -738,7 +478,7 @@ const ExploreSchemes: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSchemes.map((scheme) => (
             <Card 
-              key={`${scheme.slug}-${categoryFilter}`} 
+              key={scheme.slug} 
               className="cursor-pointer hover-card group transition-all duration-300 hover:shadow-xl border-border/50"
               onClick={() => openModal(scheme)}
             >

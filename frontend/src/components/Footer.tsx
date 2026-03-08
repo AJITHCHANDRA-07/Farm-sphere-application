@@ -2,18 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
 
 const Footer = () => {
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
   return (
     <footer className="bg-gray-900 text-white">
 <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="text-xl font-bold mb-4">FarmSphere</h3>
+            <h3 className="text-xl font-bold mb-4">{t('contact.farmSphereVision')}</h3>
             <p className="text-gray-300 mb-4">
-              Empowering farmers with data-driven insights and modern agricultural solutions.
-              Join thousands of farmers making informed decisions for better yields.
+              {t('contact.farmSphereVisionDesc')}
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-white">
@@ -36,44 +39,44 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('contact.quickLinks')}</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-300 hover:text-white">Home</Link>
+                <Link to="/" className="text-gray-300 hover:text-white">{t('contact.home')}</Link>
               </li>
               <li>
-                <Link to="/crops" className="text-gray-300 hover:text-white">Crops</Link>
+                <Link to="/crops" className="text-gray-300 hover:text-white">{t('contact.crops')}</Link>
               </li>
               <li>
-                <Link to="/analytics" className="text-gray-300 hover:text-white">Analytics</Link>
+                <Link to="/analytics" className="text-gray-300 hover:text-white">{t('contact.analyticsLink')}</Link>
               </li>
               <li>
-                <Link to="/schemes" className="text-gray-300 hover:text-white">Government Schemes</Link>
+                <Link to="/schemes" className="text-gray-300 hover:text-white">{t('contact.governmentSchemesLink')}</Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link>
+                <Link to="/contact" className="text-gray-300 hover:text-white">{t('contact.contact')}</Link>
               </li>
             </ul>
           </div>
 
           {/* Newsletter */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">Stay Updated</h4>
-            <p className="text-gray-300 mb-4">Get the latest farming insights and updates</p>
+            <h4 className="text-lg font-semibold mb-4">{t('contact.stayUpdated')}</h4>
+            <p className="text-gray-300 mb-4">{t('contact.latestInsights')}</p>
             <div className="flex space-x-2">
               <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('contact.enterYourEmail')}
                 className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
               />
-              <Button className="bg-green-600 hover:bg-green-700">Subscribe</Button>
+              <Button className="bg-green-600 hover:bg-green-700">{t('contact.subscribe')}</Button>
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-300">
-            © 2024 FarmSphere. All rights reserved. Built with ❤️ for farmers.
+            {t('contact.copyright')}
           </p>
         </div>
       </div>

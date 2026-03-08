@@ -1,494 +1,313 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { Mail, Phone, User, Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
-
-interface LoginFormData {
-  name: string;
-  email: string;
-  password: string;
-}
-
-interface MobileFormData {
-  mobile: string;
-  otp: string;
-}
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
-  
-  // Form states
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [isSignupMode, setIsSignupMode] = useState(false);
-  const [loginData, setLoginData] = useState<LoginFormData>({
-    name: '',
-    email: '',
-    password: ''
-  });
-  const [mobileData, setMobileData] = useState<MobileFormData>({
-    mobile: '',
-    otp: ''
-  });
-  
-  // UI states
-  const [showPassword, setShowPassword] = useState(false);
-  const [showOtpField, setShowOtpField] = useState(false);
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<1 | 2>(1);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
-  // Handle login form changes
-  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLoginData({
-      ...loginData,
-      [e.target.name]: e.target.value
+  // 🎯 AUTO-DETECT DISTRICT (reuse from Profile.tsx)
+  const detectDistrict = async () => {
+    return new Promise<string>((resolve) => {
+      if (!navigator.geolocation) {
+        resolve('Hyderabad');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
+            const rawDistrict = data.address?.state_district || 'Hyderabad';
+            
+            // 🎯 EXACT SAME DISTRICT MAP
+            const DISTRICT_MAP: { [key: string]: string } = {
+              'hyderabad': 'Hyderabad',
+              'rangareddy': 'Rangareddy',
+              'medchal': 'Medchal',
+              'siddipet': 'Siddipet',
+              'sangareddy': 'Sangareddy',
+              'vikarabad': 'Vikarabad',
+              'medak': 'Medak',
+              'nizamabad': 'Nizamabad',
+              'kamareddy': 'Kamareddy',
+              'karimnagar': 'Karimnagar',
+              'peddapalli': 'Peddapalli',
+              'jagitial': 'Jagitial',
+              'rajanna': 'Rajanna',
+              'warangal': 'Warangal',
+              'hanamkonda': 'Hanamkonda',
+              'jangaon': 'Jangaon',
+              'mahabubabad': 'Mahabubabad',
+              'khammam': 'Khammam',
+              'bhadradri': 'Bhadradri',
+              'mahabubnagar': 'Mahabubnagar',
+              'nagarkurnool': 'Nagarkurnool',
+              'wanaparthy': 'Wanaparthy',
+              'narayanpet': 'Narayanpet',
+              'jogulamba': 'Jogulamba',
+              'gadwal': 'Gadwal',
+              'nalgonda': 'Nalgonda',
+              'yadadri': 'Yadadri',
+              'suryapet': 'Suryapet',
+              'mulugu': 'Mulugu',
+              'jayashankar': 'Jayashankar',
+              'bhoopalpally': 'Bhoopalpally',
+              'asifabad': 'Asifabad',
+              'mancherial': 'Mancherial',
+              'kumurambheem': 'Kumurambheem'
+            };
+
+            const key = rawDistrict.toLowerCase().trim();
+            const matchedDistrict = DISTRICT_MAP[key] || rawDistrict || 'Hyderabad';
+            resolve(matchedDistrict);
+          } catch (error) {
+            console.error('District detection failed:', error);
+            resolve('Hyderabad');
+          }
+        },
+        () => resolve('Hyderabad'),
+        { timeout: 10000 }
+      );
     });
   };
 
-  // Handle mobile form changes
-  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMobileData({
-      ...mobileData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  // Handle email/password login
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    
+  // 🎯 AUTO-CREATE PROFILE AFTER LOGIN
+  const createProfile = async (user: any) => {
     try {
-      await login(loginData.email, loginData.password);
-      setSuccess('Login successful!');
-      setTimeout(() => navigate('/'), 1500);
-    } catch (err) {
-      setError('Invalid email or password');
-    } finally {
-      setIsLoading(false);
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingProfile) {
+        // Auto-detect district
+        const district = await detectDistrict();
+        
+        // 🎯 AUTO-CREATE PROFILE FROM GOOGLE DATA
+        const newProfile = {
+          id: user.id,
+          full_name: user.user_metadata?.full_name || 'Farmer',
+          email: user.email || '',
+          avatar_url: user.user_metadata?.avatar_url || '',
+          phone: user.phone || null,
+          district: district,
+          state: 'Telangana',
+          farm_size: null
+        };
+
+        const { error } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+
+        if (error) {
+          console.error('Profile creation error:', error);
+        } else {
+          console.log('✅ Profile auto-created for:', user.user_metadata?.full_name);
+        }
+      }
+    } catch (error) {
+      console.error('Auto-profile creation failed:', error);
     }
   };
 
-  // Handle email signup
-  const handleEmailSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // ================================================================
+  // ✅ REAL GOOGLE LOGIN — One tap, shows browser saved accounts
+  // ================================================================
+  const handleGoogleLogin = async () => {
     setError('');
-    
+    setLoading(true);
     try {
-      await signup(loginData.name, loginData.email, loginData.password);
-      setSuccess('Account created successfully!');
-      setTimeout(() => navigate('/'), 1500);
-    } catch (err) {
-      setError('Failed to create account');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/',
+          queryParams: {
+            prompt: 'select_account',
+          },
+          scopes: 'email profile'
+        },
+      });
+      if (error) throw error;
+      // Automatically redirects to Google account picker
+    } catch (err: any) {
+      setError('Google login failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Handle mobile OTP send
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // ================================================================
+  // ✅ REAL PHONE OTP
+  // ================================================================
+  const sendOTP = async () => {
     setError('');
-    
+    setLoading(true);
     try {
-      // Simulate OTP sending
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsOtpSent(true);
-      setShowOtpField(true);
-      setSuccess('OTP sent to your mobile number');
-    } catch (err) {
-      setError('Failed to send OTP');
-    } finally {
-      setIsLoading(false);
+      const formattedPhone = `+91${phone}`;
+      console.log('🔍 Login: Sending OTP to:', formattedPhone);
+      console.log('📱 Phone length:', phone.length);
+      console.log('🌐 Formatted phone:', formattedPhone);
+      
+      const { data, error } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
+      
+      console.log('📲 Login: Supabase response:', { data, error });
+      console.log('📊 Response details:', {
+        hasData: !!data,
+        hasError: !!error,
+        errorMessage: error?.message,
+        errorCode: error?.status
+      });
+      
+      if (error) {
+        console.error('❌ Login: Supabase error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.status,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      console.log('✅ Login: OTP sent successfully!');
+      console.log('📱 Check your phone for SMS from Supabase');
+      setStep(2);
+    } catch (err: any) {
+      console.error('❌ Login: OTP send error:', err);
+      console.error('❌ Error stack:', err.stack);
+      setError(err.message || 'Failed to send OTP. Check Supabase phone auth settings.');
     }
+    setLoading(false);
   };
 
-  // Handle mobile OTP verification
-  const handleMobileLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const verifyOTP = async () => {
     setError('');
-    
+    setLoading(true);
     try {
-      // Simulate OTP verification
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSuccess('Login successful!');
-      setTimeout(() => navigate('/'), 1500);
-    } catch (err) {
-      setError('Invalid OTP');
-    } finally {
-      setIsLoading(false);
+      const formattedPhone = `+91${phone}`;
+      console.log('🔍 Login: Verifying OTP:', { phone: formattedPhone, otp, type: 'sms' });
+      
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otp,
+        type: 'sms',
+      });
+      
+      console.log('📲 Login: OTP verification response:', { data, error });
+      
+      if (error) {
+        console.error('❌ Login: OTP verification error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Login: OTP verified successfully!');
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      console.error('❌ Login: OTP verification error:', err);
+      setError('Invalid OTP. Please check the SMS and try again.');
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center py-12 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
+
         {/* Header */}
         <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="bg-green-600 rounded-full p-3">
-              <User className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {!isLoginMode ? 'Join FarmSphere' : 
-             isSignupMode ? 'Create your FarmSphere account' : 
-             'Sign in to FarmSphere'}
-          </h2>
-          <p className="text-gray-600">
-            {!isLoginMode 
-              ? 'Create your account to get started with mobile'
-              : isSignupMode
-              ? 'Join thousands of farmers using FarmSphere'
-              : 'Welcome back! Please sign in to your account'
-            }
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+          <p className="text-gray-500">Sign in to FarmSphere</p>
         </div>
 
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-            <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-            <span className="text-green-800">{success}</span>
-          </div>
-        )}
-
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <span className="text-red-800">{error}</span>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm text-center">
+            {error}
           </div>
         )}
 
-        {/* Login Type Toggle */}
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => {
-              setIsLoginMode(true);
-              setError('');
-              setSuccess('');
-            }}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              isLoginMode
-                ? 'bg-white text-green-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            <Mail className="w-4 h-4 inline mr-2" />
-            Email
-          </button>
-          <button
-            onClick={() => {
-              setIsLoginMode(false);
-              setError('');
-              setSuccess('');
-            }}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              !isLoginMode
-                ? 'bg-white text-green-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            <Phone className="w-4 h-4 inline mr-2" />
-            Mobile
-          </button>
+        {/* ✅ REAL GOOGLE BUTTON */}
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          {loading ? 'Opening Google...' : 'Continue with Google'}
+        </button>
+
+        <div className="flex items-center gap-3 text-gray-400 text-sm">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span>or use mobile number</span>
+          <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* Email/Password Auth Type Toggle */}
-        {isLoginMode && (
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
-            <button
-              onClick={() => {
-                setIsSignupMode(false);
-                setError('');
-                setSuccess('');
-              }}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                !isSignupMode
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                setIsSignupMode(true);
-                setError('');
-                setSuccess('');
-              }}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                isSignupMode
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
-
-        {/* Email/Password Form */}
-        {isLoginMode && !isSignupMode && (
-          <form onSubmit={handleEmailLogin} className="space-y-6">
-            <div>
-              <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={loginData.email}
-                onChange={handleLoginChange}
-                className="w-full"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={loginData.password}
-                  onChange={handleLoginChange}
-                  className="w-full pr-10"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember"
-                  name="remember"
-                  type="checkbox"
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-              <Link to="/forgot-password" className="text-sm text-green-600 hover:text-green-500">
-                Forgot password?
-              </Link>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </form>
-        )}
-
-        {/* Email/Password Signup Form */}
-        {isLoginMode && isSignupMode && (
-          <form onSubmit={handleEmailSignup} className="space-y-6">
-            <div>
-              <Label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={loginData.name}
-                onChange={handleLoginChange}
-                className="w-full"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={loginData.email}
-                onChange={handleLoginChange}
-                className="w-full"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={loginData.password}
-                  onChange={handleLoginChange}
-                  className="w-full pr-10"
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center">
+        {/* Phone OTP */}
+        {step === 1 ? (
+          <div className="space-y-4">
+            <div className="flex border border-gray-300 rounded-xl overflow-hidden focus-within:border-green-500">
+              <span className="bg-gray-50 px-4 py-3 text-gray-600 font-medium border-r border-gray-300">+91</span>
               <input
-                id="agree"
-                name="agree"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="agree" className="ml-2 block text-sm text-gray-700">
-                I agree to the Terms of Service and Privacy Policy
-              </label>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? 'Creating account...' : 'Create account'}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </form>
-        )}
-
-        {/* Mobile OTP Form */}
-        {!isLoginMode && (
-          <form onSubmit={showOtpField ? handleMobileLogin : handleSendOtp} className="space-y-6">
-            <div>
-              <Label htmlFor="mobile" className="block text-sm font-medium text-gray-700 mb-2">
-                Mobile Number
-              </Label>
-              <Input
-                id="mobile"
-                name="mobile"
                 type="tel"
-                required
-                value={mobileData.mobile}
-                onChange={handleMobileChange}
-                className="w-full"
-                placeholder="+91-XXXXXXXXXX"
-                pattern="[+]?[0-9]{10,15}"
+                placeholder="Enter mobile number"
+                value={phone}
+                maxLength={10}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                className="flex-1 px-4 py-3 outline-none text-base"
               />
             </div>
-
-            {showOtpField && (
-              <div>
-                <Label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter OTP
-                </Label>
-                <Input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  required
-                  value={mobileData.otp}
-                  onChange={handleMobileChange}
-                  className="w-full"
-                  placeholder="Enter 6-digit OTP"
-                  maxLength={6}
-                  pattern="[0-9]{6}"
-                />
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700"
+            <button
+              onClick={sendOTP}
+              disabled={loading || phone.length !== 10}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
             >
-              {isLoading 
-                ? (showOtpField ? 'Verifying...' : 'Sending OTP...')
-                : (showOtpField ? 'Verify OTP' : 'Send OTP')
-              }
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-
-            {showOtpField && (
-              <button
-                type="button"
-                onClick={handleSendOtp}
-                className="w-full text-sm text-green-600 hover:text-green-500"
-              >
-                Resend OTP
-              </button>
-            )}
-          </form>
+              {loading ? 'Sending OTP...' : 'Send OTP'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-center text-sm text-gray-500">OTP sent to +91{phone}</p>
+            <input
+              type="text"
+              placeholder="Enter 6-digit OTP"
+              value={otp}
+              maxLength={6}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 text-center text-xl tracking-widest"
+            />
+            <button
+              onClick={verifyOTP}
+              disabled={loading || otp.length !== 6}
+              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+            >
+              {loading ? 'Verifying...' : 'Verify & Login'}
+            </button>
+            <button
+              onClick={() => { setStep(1); setOtp(''); setError(''); }}
+              className="w-full text-sm text-green-600 hover:text-green-700"
+            >
+              ← Change number / Resend OTP
+            </button>
+          </div>
         )}
-
-        {/* Signup Link */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-green-600 hover:text-green-500">
-              Sign up
-            </Link>
-          </p>
-        </div>
-
-        {/* Terms */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            By continuing, you agree to our{' '}
-            <Link to="/terms" className="text-green-600 hover:text-green-500">
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link to="/privacy" className="text-green-600 hover:text-green-500">
-              Privacy Policy
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

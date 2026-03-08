@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, TrendingUp, DollarSign, Droplets, BarChart3, Calculator, Image, Building } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
 
 interface StateData {
   id: number;
@@ -30,6 +32,18 @@ interface StateData {
   crop_3_demand_status: string;
 }
 
+interface StateImageData {
+  id?: number;
+  State_Name?: string;
+  'State Name'?: string;
+  state_name?: string;
+  URL?: string;
+  url?: string;
+  Url?: string;
+  Image?: string;
+  image?: string;
+}
+
 interface CropDetail {
   crop_name: string;
   crop_image?: string;
@@ -41,6 +55,8 @@ interface CropDetail {
 }
 
 const StatesPage = () => {
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
   const [states, setStates] = useState<StateData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedState, setSelectedState] = useState<StateData | null>(null);
@@ -59,17 +75,165 @@ const StatesPage = () => {
 
   const fetchStates = async () => {
     try {
-      const { data, error } = await supabase
+      // 🎯 FETCH STATES DATA
+      const { data: statesData, error: statesError } = await supabase
         .from('State_Wise_Major_Crops')
         .select('*')
         .order('id', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching states:', error);
+      if (statesError) {
+        console.error('Error fetching states:', statesError);
         return;
       }
 
-      setStates(data || []);
+      // 🎯 TRY MULTIPLE TABLE NAMES FOR STATE IMAGES
+      let stateImages = null;
+      let imagesError = null;
+      let tableName = '';
+
+      // Try different possible table names
+      const possibleTables = [
+        'State_MajorC_URL\'s',
+        'State_MajorC_URLs',
+        'State_MajorC_URL', 
+        'State_MajorC_Urls',
+        'State_MajorC_Url',
+        'State_Major_URLs',
+        'State_Major_URL',
+        'State_Images',
+        'State_Image_URLs',
+        'State_URLs',
+        'state_major_c_urls',
+        'state_major_c_url'
+      ];
+
+      for (const table of possibleTables) {
+        console.log(`🔍 Trying table: ${table}`);
+        const { data, error } = await supabase.from(table).select('*').limit(1);
+        
+        if (!error) {
+          console.log(`✅ Found working table: ${table}`);
+          tableName = table;
+          // Fetch all data from the working table
+          const { data: allData, error: allError } = await supabase.from(table).select('*');
+          if (!allError) {
+            stateImages = allData;
+            imagesError = null;
+            break;
+          }
+        } else {
+          console.log(`❌ Table ${table} failed:`, error.message);
+        }
+      }
+
+      if (imagesError || !stateImages) {
+        console.error('❌ No state image table found. Tried:', possibleTables);
+        console.log('🎯 Using test images only');
+      } else {
+        console.log(`🖼️ State images fetched from ${tableName}:`, stateImages?.length || 0);
+        console.log('🔍 State image columns:', stateImages?.[0] ? Object.keys(stateImages[0]) : []);
+        console.log('📝 Sample state image data:', stateImages?.[0]);
+        
+        // 🔹 DEBUG ALL STATE IMAGES
+        if (stateImages && stateImages.length > 0) {
+          console.log('🔍 ALL STATE IMAGES:');
+          stateImages.forEach((img, index) => {
+            console.log(`🖼️ IMAGE ${index + 1}:`, {
+              'State_Name': img.State_Name,
+              'State Name': img['State Name'],
+              'state_name': img.state_name,
+              'URL': img.URL,
+              'url': img.url,
+              'Url': img.Url,
+              'Image': img.Image,
+              'image': img.image
+            });
+          });
+        }
+      }
+
+      // 🎯 MERGE STATE DATA WITH IMAGE URLS
+      const mergedStates = (statesData || []).map(state => {
+        // Find corresponding image for this state
+        const stateImage = stateImages?.find(img => {
+          const imgStateName = img.State_Name || img['State Name'] || img.state_name;
+          const stateName = state.state_name;
+          return imgStateName === stateName;
+        });
+
+        // 🔹 DEBUG MATCHING PROCESS
+        console.log(`🔍 Matching state: "${state.state_name}"`);
+        if (stateImage) {
+          console.log(`✅ Found image for ${state.state_name}:`, stateImage);
+        } else {
+          console.log(`❌ No image found for ${state.state_name}`);
+          // Show available state names for debugging
+          const availableStateNames = stateImages?.map(img => 
+            img.State_Name || img['State Name'] || img.state_name
+          ).filter(Boolean);
+          console.log(`📍 Available state names in images table:`, availableStateNames);
+        }
+
+        // Extract image URL with multiple fallback column names
+        const imageUrl = stateImage?.URL || 
+                         stateImage?.url || 
+                         stateImage?.Url || 
+                         stateImage?.Image || 
+                         stateImage?.image || 
+                         stateImage?.state_image;
+
+        console.log(`🖼️ ${state.state_name} - Image URL: "${imageUrl || 'No image found'}"`);
+
+        // 🔹 USE ACTUAL DATABASE IMAGES + FALLBACK TEST IMAGES
+        let finalImageUrl = imageUrl;
+        
+        // 🔹 IMMEDIATE FIX: ADD TEST IMAGES IF NO DATABASE IMAGES
+        if (!finalImageUrl) {
+          const testImages = {
+            'Andhra Pradesh': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Arunachal Pradesh': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'Assam': 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?w=400&h=200&fit=crop',
+            'Bihar': 'https://images.unsplash.com/photo-1524492412937-b984241da2b3?w=400&h=200&fit=crop',
+            'Chhattisgarh': 'https://images.unsplash.com/photo-1586348943529-beaae2f96cd3?w=400&h=200&fit=crop',
+            'Goa': 'https://images.unsplash.com/photo-1514210186142-26c61c3ca8a7?w=400&h=200&fit=crop',
+            'Gujarat': 'https://images.unsplash.com/photo-1586348943529-beaae2f96cd3?w=400&h=200&fit=crop',
+            'Haryana': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Himachal Pradesh': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'Jharkhand': 'https://images.unsplash.com/photo-1524492412937-b984241da2b3?w=400&h=200&fit=crop',
+            'Karnataka': 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?w=400&h=200&fit=crop',
+            'Kerala': 'https://images.unsplash.com/photo-1514210186142-26c61c3ca8a7?w=400&h=200&fit=crop',
+            'Madhya Pradesh': 'https://images.unsplash.com/photo-1586348943529-beaae2f96cd3?w=400&h=200&fit=crop',
+            'Maharashtra': 'https://images.unsplash.com/photo-1524492412937-b984241da2b3?w=400&h=200&fit=crop',
+            'Manipur': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'Meghalaya': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Mizoram': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'Nagaland': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Odisha': 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?w=400&h=200&fit=crop',
+            'Punjab': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Rajasthan': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'Sikkim': 'https://images.unsplash.com/photo-1586348943529-beaae2f96cd3?w=400&h=200&fit=crop',
+            'Tamil Nadu': 'https://images.unsplash.com/photo-1514210186142-26c61c3ca8a7?w=400&h=200&fit=crop',
+            'Telangana': 'https://images.unsplash.com/photo-1524492412937-b984241da2b3?w=400&h=200&fit=crop',
+            'Tripura': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+            'Uttar Pradesh': 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?w=400&h=200&fit=crop',
+            'Uttarakhand': 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
+            'West Bengal': 'https://images.unsplash.com/photo-1593696140826-c58b021acf8b?w=400&h=200&fit=crop'
+          };
+          finalImageUrl = testImages[state.state_name] || null;
+          if (finalImageUrl) {
+            console.log(`🎯 USING TEST IMAGE for ${state.state_name}: ${finalImageUrl}`);
+          }
+        }
+        
+        console.log(`🖼️ Final image URL for ${state.state_name}: "${finalImageUrl || 'No image found'}"`);
+
+        return {
+          ...state,
+          state_image: finalImageUrl || state.state_image
+        };
+      });
+
+      setStates(mergedStates);
       setLoading(false);
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -158,6 +322,17 @@ const StatesPage = () => {
     );
   }
 
+  // 🔹 DEBUG: Show first few states with image data
+  console.log('🔍 DEBUG - First 3 states with images:');
+  states.slice(0, 3).forEach((state, index) => {
+    console.log(`📊 State ${index + 1}:`, {
+      'name': state.state_name,
+      'has_image': !!state.state_image,
+      'image_url': state.state_image,
+      'image_length': state.state_image?.length || 0
+    });
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -167,23 +342,19 @@ const StatesPage = () => {
             <Building className="h-16 w-16 mx-auto mb-4 text-white opacity-90" />
           </div>
           <h1 className="text-5xl md:text-6xl font-black mb-6 tracking-wide">
-            🌾 INDIAN STATES AGRICULTURAL HUB
+            {t('states.hero.title')}
           </h1>
           <p className="text-2xl opacity-95 max-w-4xl mx-auto font-medium">
-            Explore Major Crops • Export Opportunities • Market Insights
+            {t('states.hero.subtitle')}
           </p>
           <div className="mt-8 flex justify-center space-x-8">
             <div className="flex items-center">
-              <DollarSign className="h-6 w-6 mr-2" />
-              <span className="text-lg font-semibold">28 States</span>
-            </div>
-            <div className="flex items-center">
               <TrendingUp className="h-6 w-6 mr-2" />
-              <span className="text-lg font-semibold">84+ Crops</span>
+              <span className="text-lg font-semibold">{t('states.stats.cropsCount')}</span>
             </div>
             <div className="flex items-center">
               <MapPin className="h-6 w-6 mr-2" />
-              <span className="text-lg font-semibold">Export Data</span>
+              <span className="text-lg font-semibold">{t('states.stats.exportData')}</span>
             </div>
           </div>
         </div>
@@ -198,12 +369,42 @@ const StatesPage = () => {
               className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary hover:scale-105"
               onClick={() => openStateModal(state)}
             >
-              {/* Space for future state image */}
-              <div className="h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Image className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-xs text-gray-500">State Image</p>
-                </div>
+              {/* State Image Display */}
+              <div className="h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-t-lg overflow-hidden relative">
+                {state.state_image ? (
+                  <>
+                    <img 
+                      src={state.state_image}
+                      alt={state.state_name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => {
+                        console.log(`✅ Successfully loaded image for ${state.state_name}:`, state.state_image);
+                      }}
+                      onError={(e) => {
+                        console.log(`❌ Failed to load image for ${state.state_name}:`, state.state_image);
+                        // Hide failed image and show fallback
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                        if (fallback) {
+                          (fallback as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                    <div className="image-fallback h-full w-full flex items-center justify-center" style={{display: 'none'}}>
+                      <div className="text-center">
+                        <Image className="h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-xs text-gray-500">Image Failed</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Image className="h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-xs text-gray-500">No Image</p>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <CardHeader className="pb-3 pt-2">
@@ -278,6 +479,12 @@ const StatesPage = () => {
                   src={selectedState.state_image} 
                   alt={selectedState.state_name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.log(`❌ Failed to load modal image for ${selectedState.state_name}:`, selectedState.state_image);
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.parentElement?.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 text-white">

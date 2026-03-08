@@ -1,9 +1,13 @@
 import { Button } from "../components/ui/button";
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useTranslation } from "../lib/translations";
 
 const StateAnalyticsSection = () => {
   const navigate = useNavigate();
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
 
   const handleExploreStates = () => {
     navigate('/states');
@@ -16,12 +20,12 @@ const StateAnalyticsSection = () => {
           <div className="space-y-8">
             {/* Main Title */}
             <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-              🌾 State-wise Crop Insights
+              {t('contact.stateWiseCropInsights')}
             </h2>
             
             {/* Description */}
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Explore high-demand crops and agricultural patterns across different states to plan your cultivation effectively.
+              {t('contact.stateWiseCropInsightsDesc')}
             </p>
             
             {/* Explore Button */}
@@ -29,16 +33,19 @@ const StateAnalyticsSection = () => {
               <Button 
                 variant="professional" 
                 size="lg" 
-                className="px-12 py-4 text-lg md:text-xl font-semibold"
+                className="px-6 py-3 md:px-12 md:py-4 text-base md:text-lg lg:text-xl font-semibold w-full md:w-auto min-w-[140px] md:min-w-[160px] break-words text-center"
                 onClick={handleExploreStates}
               >
-                Explore States <ChevronRight className="ml-2 h-5 w-5" />
+                <span className="truncate flex items-center justify-center">
+                  {t('contact.exploreStates')} 
+                  <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                </span>
               </Button>
             </div>
             
             {/* Subtle Hint */}
             <p className="text-sm text-muted-foreground">
-              Discover agricultural insights and patterns across Indian states
+              {t('contact.agriculturalInsights')}
             </p>
           </div>
         </div>

@@ -8,13 +8,28 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Search, Leaf, Droplets, TrendingUp, Calendar, X, AlertCircle } from 'lucide-react';
-import { fetchCropsByCategory } from "@/data/cropApi";
+import { MapPin, Search, Leaf, Droplets, TrendingUp, Calendar, X, AlertCircle, Clock, ArrowUpDown, Target } from 'lucide-react';
+import { fetchCropsByCategory, testCropImageTable, getLongTermCropImageLinks, diagnoseDatabaseConnection } from "@/data/cropApi";
 import CropDetailModal from "@/components/CropDetailModal";
 import { useCropModal } from "@/hooks/useCropModal";
+import { supabase } from "@/lib/supabase";
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
 
 const ExploreCropsNew = () => {
   console.log('🌱 ExploreCropsNew component rendering...');
+  
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
+  
+  // Add global debug function
+  if (typeof window !== 'undefined') {
+    (window as any).debugTest = () => {
+      console.log('✅ JavaScript is working!');
+      console.log('Component loaded successfully');
+      return 'Debug test successful';
+    };
+  }
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'short' | 'medium' | 'long'>('short');
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +66,9 @@ const ExploreCropsNew = () => {
       try {
         setLoading(true);
         console.log('🔄 Loading crops from database...');
+        
+        // Test the crop image table
+        await testCropImageTable();
         
         // For testing: if no location, default to Rangareddy
         let userDistrict = userLocation?.district;
@@ -419,6 +437,280 @@ const ExploreCropsNew = () => {
 
   // Add test functions to window for manual testing
   if (typeof window !== 'undefined') {
+    // Test L_T_C_URL1 table directly
+    (window as any).testLTCURL1 = async (limit: number = 15) => {
+      console.log('🔍 Testing L_T_C_URL1 table directly...');
+      try {
+        const { data, error } = await supabase
+          .from('L_T_C_URL1')
+          .select('Id, "Crop Name", URL')
+          .limit(limit);
+        
+        if (error) {
+          console.error('❌ L_T_C_URL1 error:', error);
+          return { success: false, error };
+        } else {
+          console.log('✅ L_T_C_URL1 SUCCESS:');
+          console.log(`Found ${data?.length || 0} records (showing first ${limit})`);
+          console.log('=====================================');
+          data?.forEach((record, index) => {
+            console.log(`${index + 1}. ID: ${record.Id}`);
+            console.log(`   Crop: ${record['Crop Name']}`);
+            console.log(`   URL: ${record.URL}`);
+            console.log('');
+          });
+          console.log('=====================================');
+          console.log(`Total available: 213 records`);
+          return { success: true, data };
+        }
+      } catch (error) {
+        console.error('❌ L_T_C_URL1 exception:', error);
+        return { success: false, error };
+      }
+    };
+    
+    // Complete database diagnosis
+    (window as any).diagnoseDB = async () => {
+      console.log('🔍 RUNNING COMPLETE DATABASE DIAGNOSIS...');
+      const diagnosis = await diagnoseDatabaseConnection();
+      return diagnosis;
+    };
+    
+    // Match long-term crops with images from L_T_C_URL1
+    (window as any).matchLongTermCropsWithImages = async () => {
+      console.log('🎯 Matching long-term crops with images from L_T_C_URL1...');
+      try {
+        // Get all long-term crops
+        const { data: longTermCrops, error: cropError } = await supabase
+          .from('crop_data')
+          .select('"Crop Name", "Crop Duration (Days)"')
+          .eq('category', 'long');
+        
+        if (cropError) {
+          console.error('❌ Error fetching long-term crops:', cropError);
+          return { success: false, error: cropError };
+        }
+        
+        console.log(`📊 Found ${longTermCrops?.length || 0} long-term crops in crop_data`);
+        
+        // Get all image data from L_T_C_URL1
+        const { data: imageData, error: imageError } = await supabase
+          .from('L_T_C_URL1')
+          .select('Id, "Crop Name", URL');
+        
+        if (imageError) {
+          console.error('❌ Error fetching images:', imageError);
+          return { success: false, error: imageError };
+        }
+        
+        console.log(`🖼️ Found ${imageData?.length || 0} image records in L_T_C_URL1`);
+        
+        // Match crops with images
+        const matchedCrops = (longTermCrops || []).map(crop => {
+          const cropName = crop['Crop Name'];
+          const imageRecord = imageData?.find(img => {
+            const imgCropName = img['Crop Name'];
+            return imgCropName === cropName ||
+                   imgCropName?.toLowerCase() === cropName?.toLowerCase() ||
+                   imgCropName?.trim() === cropName?.trim();
+          });
+          
+          return {
+            crop_name: cropName,
+            duration: crop['Crop Duration (Days)'],
+            has_image: !!imageRecord,
+            image_url: imageRecord?.URL || 'NO_IMAGE_FOUND',
+            image_id: imageRecord?.Id
+          };
+        });
+        
+        console.log('🎯 LONG-TERM CROPS WITH IMAGES:');
+        console.log('=====================================');
+        matchedCrops.forEach((item, index) => {
+          console.log(`${index + 1}. ${item.crop_name}`);
+          console.log(`   Duration: ${item.duration} days`);
+          console.log(`   Has Image: ${item.has_image ? '✅' : '❌'}`);
+          console.log(`   Image URL: ${item.image_url}`);
+          console.log('');
+        });
+        
+        const withImages = matchedCrops.filter(c => c.has_image).length;
+        const withoutImages = matchedCrops.filter(c => !c.has_image).length;
+        
+        console.log('📊 SUMMARY:');
+        console.log(`✅ With Images: ${withImages}`);
+        console.log(`❌ Without Images: ${withoutImages}`);
+        console.log(`📈 Success Rate: ${Math.round((withImages / matchedCrops.length) * 100)}%`);
+        
+        return { success: true, matchedCrops, withImages, withoutImages };
+        
+      } catch (error) {
+        console.error('❌ Error matching long-term crops:', error);
+        return { success: false, error };
+      }
+    };
+    
+    // Count long-term crops
+    (window as any).countLongTermCrops = async () => {
+      console.log('🔍 Counting long-term crops...');
+      try {
+        // Get total count
+        const { data: countData, error: countError } = await supabase
+          .from('crop_data')
+          .select('count(*)')
+          .eq('category', 'long');
+        
+        if (countError) {
+          console.error('❌ Error counting long-term crops:', countError);
+          return { success: false, error: countError };
+        }
+        
+        const totalCount = countData?.[0]?.count || 0;
+        console.log(`📊 Total long-term crops: ${totalCount}`);
+        
+        // Get sample data to show crop names
+        const { data: sampleData, error: sampleError } = await supabase
+          .from('crop_data')
+          .select('"Crop Name", "Crop Duration (Days)"')
+          .eq('category', 'long')
+          .limit(10);
+        
+        if (sampleError) {
+          console.error('❌ Error getting sample:', sampleError);
+        } else {
+          console.log('🌱 Sample long-term crops:');
+          console.log('=====================================');
+          sampleData?.forEach((crop, index) => {
+            console.log(`${index + 1}. ${crop['Crop Name']} (${crop['Crop Duration (Days)']} days)`);
+          });
+          console.log('=====================================');
+        }
+        
+        return { success: true, totalCount, sample: sampleData };
+        
+      } catch (error) {
+        console.error('❌ Error counting long-term crops:', error);
+        return { success: false, error };
+      }
+    };
+    
+    // Test long-term crops with image matching
+    (window as any).testLongTermCropsWithImages = async () => {
+      console.log('🔍 Testing long-term crops with image matching...');
+      try {
+        // Get long-term crops
+        const { data: longTermCrops, error: cropError } = await supabase
+          .from('crop_data')
+          .select('*')
+          .eq('category', 'long')
+          .limit(10);
+        
+        if (cropError) {
+          console.error('❌ Error fetching long-term crops:', cropError);
+          return { success: false, error: cropError };
+        }
+        
+        console.log(`📊 Found ${longTermCrops?.length || 0} long-term crops`);
+        
+        // Get image data
+        const { data: imageData, error: imageError } = await supabase
+          .from('L_T_C_URL1')
+          .select('Id, "Crop Name", URL');
+        
+        if (imageError) {
+          console.error('❌ Error fetching images:', imageError);
+          return { success: false, error: imageError };
+        }
+        
+        console.log(`🖼️ Found ${imageData?.length || 0} image records`);
+        
+        // Match crops with images
+        const matchedCrops = (longTermCrops || []).map(crop => {
+          const cropName = crop['Crop Name'];
+          const imageRecord = imageData?.find(img => {
+            const imgCropName = img['Crop Name'];
+            return imgCropName === cropName ||
+                   imgCropName?.toLowerCase() === cropName?.toLowerCase() ||
+                   imgCropName?.trim() === cropName?.trim();
+          });
+          
+          return {
+            crop_name: cropName,
+            has_image: !!imageRecord,
+            image_url: imageRecord?.URL || 'NO_IMAGE_FOUND',
+            category: crop.category,
+            duration: crop['Crop Duration (Days)']
+          };
+        });
+        
+        console.log('🎯 LONG-TERM CROPS WITH IMAGES:');
+        console.log('=====================================');
+        matchedCrops.forEach((item, index) => {
+          console.log(`${index + 1}. ${item.crop_name}`);
+          console.log(`   Has Image: ${item.has_image ? '✅' : '❌'}`);
+          console.log(`   Image URL: ${item.image_url}`);
+          console.log(`   Duration: ${item.duration} days`);
+          console.log('');
+        });
+        
+        const withImages = matchedCrops.filter(c => c.has_image).length;
+        console.log(`📊 Summary: ${withImages}/${matchedCrops.length} long-term crops have images`);
+        
+        return { success: true, data: matchedCrops };
+        
+      } catch (error) {
+        console.error('❌ Error testing long-term crops:', error);
+        return { success: false, error };
+      }
+    };
+    
+    // Extract long-term crop image links
+    (window as any).getLongTermCropImages = async (limit: number = 10) => {
+      console.log('🔍 Extracting long-term crop image links...');
+      const links = await getLongTermCropImageLinks(limit);
+      
+      if (links) {
+        console.log('🖼️ LONG-TERM CROP IMAGE LINKS:');
+        console.log('================================');
+        links.forEach((item, index) => {
+          console.log(`${index + 1}. ${item.crop_name}: ${item.image_url}`);
+          console.log(`   Table: ${item.table_used}`);
+          console.log(`   Has Image: ${item.image_url !== 'NO_IMAGE_FOUND' ? '✅' : '❌'}`);
+          console.log('');
+        });
+        
+        // Show first 5 links clearly
+        console.log('🔍 FIRST 5 LINKS FOR VERIFICATION:');
+        links.slice(0, 5).forEach((item, index) => {
+          console.log(`${index + 1}. ${item.crop_name}: ${item.image_url}`);
+        });
+        
+        return links;
+      } else {
+        console.log('❌ Failed to extract long-term crop image links');
+        return null;
+      }
+    };
+    
+    // Test image URLs directly
+    (window as any).testCropImages = async () => {
+      console.log('🧪 Testing crop images...');
+      const testCrops = [
+        { name: 'Paddy', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop' },
+        { name: 'Wheat', image: 'https://images.unsplash.com/photo-1598977148803-1d6a4a8d4b5c?w=400&h=300&fit=crop' },
+        { name: 'Cotton', image: 'https://images.unsplash.com/photo-1625246333195-78d938e3140d?w=400&h=300&fit=crop' }
+      ];
+      
+      for (const crop of testCrops) {
+        try {
+          const response = await fetch(crop.image, { method: 'HEAD' });
+          console.log(`${crop.name}: ${response.ok ? '✅' : '❌'} (${response.status})`);
+        } catch (error) {
+          console.log(`${crop.name}: ❌ (Network error)`);
+        }
+      }
+    };
+    
     (window as any).setTestLocation = (district: string = 'Rangareddy') => {
       console.log('🧪 Setting test location for:', district);
       
@@ -608,7 +900,29 @@ const ExploreCropsNew = () => {
                 src={crop.image} 
                 alt={crop.name}
                 className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                onLoad={() => {
+                  console.log(`✅ ${crop.name} image loaded successfully:`, crop.image);
+                }}
+                onError={(e) => {
+                  console.log(`❌ ${crop.name} image failed to load:`, e.currentTarget.src);
+                  // Fallback to placeholder if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                  }
+                }}
               />
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100"
+                style={{ display: 'none' }}
+              >
+                <div className="text-center">
+                  <Leaf className="h-12 w-12 text-green-400 mb-2" />
+                  <p className="text-sm text-green-600">{crop.name}</p>
+                  <p className="text-xs text-green-500">Crop Image</p>
+                </div>
+              </div>
               <div className="absolute top-3 right-3">
                 <Badge className="bg-primary/90 backdrop-blur-sm text-white">
                   {crop.duration} days
@@ -707,30 +1021,16 @@ const ExploreCropsNew = () => {
         {/* Main Content */}
         {!loading && (
           <>
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
-                <h4 className="font-bold text-yellow-800">🐛 Debug Info:</h4>
-                <p className="text-yellow-700">
-                  District: {userLocation?.district || 'Not detected'}<br/>
-                  Short Crops: {shortTermCrops.length}<br/>
-                  Medium Crops: {mediumTermCrops.length}<br/>
-                  Long Crops: {longTermCrops.length}<br/>
-                  Location Permission: {locationPermission}
-                </p>
-              </div>
-            )}
-            
             {/* Header Section */}
             <div className="text-center mb-12">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl mb-6">
                 <Leaf className="h-8 w-8 text-primary" />
               </div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                🌱 Location-Based Crop Explorer
+                {t('exploreCrops.hero.title')}
               </h1>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-                Discover profitable crops tailored to your location in {userLocation?.district || 'Telangana'}
+                {t('exploreCrops.hero.subtitle')}
               </p>
               
               {/* Location Display */}
@@ -740,7 +1040,7 @@ const ExploreCropsNew = () => {
                     <div className="space-y-4">
                       <span className="inline-flex items-center px-4 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-full">
                         <AlertCircle className="h-4 w-4 mr-2" />
-                        District not supported yet
+                        {t('exploreCrops.location.notSupported')}
                       </span>
                       <div className="text-center max-w-2xl mx-auto">
                         <p className="text-red-600 mb-4">
@@ -759,14 +1059,14 @@ const ExploreCropsNew = () => {
                             size="sm"
                             variant="outline"
                           >
-                            Try Random Telangana District
+                            {t('exploreCrops.location.tryRandom')}
                           </Button>
                           <Button 
                             onClick={requestLocationPermission}
                             size="sm"
                             variant="outline"
                           >
-                            Retry Location Detection
+                            {t('exploreCrops.location.retryLocation')}
                           </Button>
                         </div>
                       </div>
@@ -774,7 +1074,7 @@ const ExploreCropsNew = () => {
                   ) : (
                     <span className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-full">
                       <MapPin className="h-4 w-4 mr-2" />
-                      📍 Detected District: {userLocation.district}
+                      {t('exploreCrops.location.detected')} {userLocation.district}
                     </span>
                   )}
                 </div>
@@ -793,12 +1093,12 @@ const ExploreCropsNew = () => {
                     {locationLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                        Getting Location...
+                        {t('exploreCrops.location.gettingLocation')}
                       </>
                     ) : (
                       <>
                         <MapPin className="h-4 w-4 mr-2" />
-                        Enable Location for Better Results
+                        {t('exploreCrops.location.enableLocation')}
                       </>
                     )}
                   </Button>
@@ -834,7 +1134,7 @@ const ExploreCropsNew = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search crops by name, description, or cultivation steps..."
+                      placeholder={t('exploreCrops.filters.searchPlaceholder')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-12"
@@ -847,13 +1147,13 @@ const ExploreCropsNew = () => {
                   <Select value={waterFilter} onValueChange={setWaterFilter}>
                     <SelectTrigger className="h-12">
                       <Droplets className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Water Needs" />
+                      <SelectValue placeholder={t('exploreCrops.filters.waterNeeds')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Water Needs</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="moderate">Moderate</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="all">{t('exploreCrops.filters.allWaterNeeds')}</SelectItem>
+                      <SelectItem value="low">{t('exploreCrops.filters.low')}</SelectItem>
+                      <SelectItem value="moderate">{t('exploreCrops.filters.moderate')}</SelectItem>
+                      <SelectItem value="high">{t('exploreCrops.filters.high')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -863,13 +1163,13 @@ const ExploreCropsNew = () => {
                   <Select value={demandFilter} onValueChange={setDemandFilter}>
                     <SelectTrigger className="h-12">
                       <TrendingUp className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Demand" />
+                      <SelectValue placeholder={t('exploreCrops.filters.demand')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Demand</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="all">{t('exploreCrops.filters.allDemand')}</SelectItem>
+                      <SelectItem value="high">{t('exploreCrops.filters.high')}</SelectItem>
+                      <SelectItem value="medium">{t('exploreCrops.filters.moderate')}</SelectItem>
+                      <SelectItem value="low">{t('exploreCrops.filters.low')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -884,10 +1184,10 @@ const ExploreCropsNew = () => {
                     <div className="flex items-center">
                       <ArrowUpDown className="h-4 w-4 mr-2" />
                       <span>
-                        {sortBy === 'profit' && 'Profit'}
-                        {sortBy === 'name' && 'Name'}
-                        {sortBy === 'duration' && 'Duration'}
-                        {sortBy === 'roi' && 'ROI'}
+                        {sortBy === 'profit' && t('exploreCrops.sorting.profit')}
+                        {sortBy === 'name' && t('exploreCrops.sorting.name')}
+                        {sortBy === 'duration' && t('exploreCrops.sorting.duration')}
+                        {sortBy === 'roi' && t('exploreCrops.sorting.roi')}
                       </span>
                     </div>
                     <span className="text-muted-foreground">
@@ -905,14 +1205,14 @@ const ExploreCropsNew = () => {
                   onClick={() => setSortBy('profit')}
                 >
                   <TrendingUp className="h-4 w-4 mr-1" />
-                  Profit
+                  {t('exploreCrops.sorting.profit')}
                 </Button>
                 <Button
                   variant={sortBy === 'name' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSortBy('name')}
                 >
-                  Name
+                  {t('exploreCrops.sorting.name')}
                 </Button>
                 <Button
                   variant={sortBy === 'duration' ? 'default' : 'outline'}
@@ -920,14 +1220,14 @@ const ExploreCropsNew = () => {
                   onClick={() => setSortBy('duration')}
                 >
                   <Clock className="h-4 w-4 mr-1" />
-                  Duration
+                  {t('exploreCrops.sorting.duration')}
                 </Button>
                 <Button
                   variant={sortBy === 'roi' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSortBy('roi')}
                 >
-                  ROI
+                  {t('exploreCrops.sorting.roi')}
                 </Button>
               </div>
             </div>
@@ -937,23 +1237,23 @@ const ExploreCropsNew = () => {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="short" className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Short-term ({shortTermCrops.length})
+                  {t('exploreCrops.categories.shortTerm')} ({shortTermCrops.length})
                 </TabsTrigger>
                 <TabsTrigger value="medium" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Medium-term ({mediumTermCrops.length})
+                  {t('exploreCrops.categories.mediumTerm')} ({mediumTermCrops.length})
                 </TabsTrigger>
                 <TabsTrigger value="long" className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Long-term ({longTermCrops.length})
+                  {t('exploreCrops.categories.longTerm')} ({longTermCrops.length})
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="short" className="mt-6">
                 <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">🌱 Short-term Crops</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">🌱 {t('exploreCrops.categories.shortTerm')}</h2>
                   <p className="text-muted-foreground">
-                    Quick returns (&le;120 days) - Perfect for rapid turnover and immediate cash flow
+                    {t('exploreCrops.categories.shortTermDesc')}
                     {userLocation && ` in ${userLocation.district} district`}
                   </p>
                 </div>
@@ -962,9 +1262,9 @@ const ExploreCropsNew = () => {
 
               <TabsContent value="medium" className="mt-6">
                 <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">🌿 Medium-term Crops</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">🌿 {t('exploreCrops.categories.mediumTerm')}</h2>
                   <p className="text-muted-foreground">
-                    Balanced investment (121-365 days) - Good returns with moderate time commitment
+                    {t('exploreCrops.categories.mediumTermDesc')}
                     {userLocation && ` in ${userLocation.district} district`}
                   </p>
                 </div>
@@ -973,9 +1273,9 @@ const ExploreCropsNew = () => {
 
               <TabsContent value="long" className="mt-6">
                 <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">🌳 Long-term Crops</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">🌳 {t('exploreCrops.categories.longTerm')}</h2>
                   <p className="text-muted-foreground">
-                    High-value crops (&gt;365 days) - Long-term investment with premium returns
+                    {t('exploreCrops.categories.longTermDesc')}
                     {userLocation && ` in ${userLocation.district} district`}
                   </p>
                 </div>

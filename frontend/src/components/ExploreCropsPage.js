@@ -2,227 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, Search, Droplets, Thermometer, Clock, TrendingUp, AlertCircle, Leaf, Tree, Sprout } from 'lucide-react';
 
 // Sample crop data - in production, this would come from API or JSON import
-const CROPS_DATABASE = [
-  // Short-Term Crops (45-120 days)
-  {
-    id: 1,
-    name: "Asparagus",
-    cropType: "Vegetable",
-    duration: "90-120 days",
-    category: "short",
-    supplyStatus: "Very Low",
-    demandStatus: "Very High",
-    importDependency: "Yes",
-    primarySoilType: "Sandy Loam, Deep Red Loam",
-    waterRequirement: "Medium",
-    climateSuitability: "Warm days, cool nights; 15-30°C",
-    irrigationCompatibility: "Drip recommended",
-    suitableDistricts: ["Rangareddy", "Medak", "Sangareddy", "Vikarabad"],
-    landAreaSuitability: "Medium",
-    riskFactors: "High cost, crown rot, water stress",
-    mitigationStrategies: "Use disease-free crowns, precise drip, raised beds"
-  },
-  {
-    id: 2,
-    name: "Broccoli",
-    cropType: "Vegetable",
-    duration: "60-90 days",
-    category: "short",
-    supplyStatus: "Low",
-    demandStatus: "Very High",
-    importDependency: "Yes",
-    primarySoilType: "Clay Loam, Sandy Loam with high OM",
-    waterRequirement: "Medium",
-    climateSuitability: "Cool, 15-20°C; sensitive to heat",
-    irrigationCompatibility: "Drip/Sprinkler",
-    suitableDistricts: ["Rangareddy", "Vikarabad", "Adilabad"],
-    landAreaSuitability: "Small",
-    riskFactors: "Heat stress, aphids, downy mildew",
-    mitigationStrategies: "Heat-tolerant varieties, shade nets, IPM"
-  },
-  {
-    id: 3,
-    name: "Lettuce (Iceberg)",
-    cropType: "Vegetable",
-    duration: "50-80 days",
-    category: "short",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "Yes",
-    primarySoilType: "Sandy Loam, Rich Organic Loam",
-    waterRequirement: "Medium",
-    climateSuitability: "Cool, 12-22°C; bolts in heat",
-    irrigationCompatibility: "Drip/Sprinkler",
-    suitableDistricts: ["Rangareddy", "Medak", "Sangareddy"],
-    landAreaSuitability: "Small",
-    riskFactors: "Bolting, tip burn, aphids",
-    mitigationStrategies: "Summer-less varieties, shade netting, balanced N-K fertigation"
-  },
-  {
-    id: 4,
-    name: "Bell Pepper (Colored)",
-    cropType: "Vegetable",
-    duration: "90-110 days",
-    category: "short",
-    supplyStatus: "Low",
-    demandStatus: "Very High",
-    importDependency: "Yes",
-    primarySoilType: "Well-draining Sandy Loam, Red Soil",
-    waterRequirement: "High",
-    climateSuitability: "Warm, 21-30°C; frost sensitive",
-    irrigationCompatibility: "Drip essential",
-    suitableDistricts: ["Khammam", "Nalgonda", "Mahabubnagar"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Blossom end rot, viruses, mites",
-    mitigationStrategies: "Grafting on resistant rootstock, drip with calcium, bio-pesticides"
-  },
-  {
-    id: 5,
-    name: "Sunflower (Hybrid, Oil)",
-    cropType: "Oilseed",
-    duration: "85-95 days",
-    category: "short",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "Yes",
-    primarySoilType: "Well-draining Loam, Red/Black",
-    waterRequirement: "Medium",
-    climateSuitability: "Warm, 20-30°C",
-    irrigationCompatibility: "Drip/Rainfed",
-    suitableDistricts: ["Nizamabad", "Karimnagar", "Jagtial"],
-    landAreaSuitability: "Large",
-    riskFactors: "Downy mildew, bird damage",
-    mitigationStrategies: "Resistant hybrids, bird scaring, timely sowing"
-  },
-  {
-    id: 6,
-    name: "Moong (Green Gram)",
-    cropType: "Pulse",
-    duration: "60-75 days",
-    category: "short",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "No",
-    primarySoilType: "Sandy Loam, Black Cotton Soil",
-    waterRequirement: "Low",
-    climateSuitability: "Warm, 25-35°C",
-    irrigationCompatibility: "Rainfed",
-    suitableDistricts: ["Nizamabad", "Karimnagar", "Warangal"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Yellow mosaic virus, cercospora",
-    mitigationStrategies: "Resistant varieties, crop rotation"
-  },
-  // Medium-Term Crops (4-12 months)
-  {
-    id: 101,
-    name: "Tomato (Indeterminate)",
-    cropType: "Vegetable",
-    duration: "4-6 months",
-    category: "medium",
-    supplyStatus: "Low",
-    demandStatus: "Very High",
-    importDependency: "No",
-    primarySoilType: "Well-draining Loam, Red Soil",
-    waterRequirement: "High",
-    climateSuitability: "Warm, 20-30°C",
-    irrigationCompatibility: "Drip/Rainfed",
-    suitableDistricts: ["All districts"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Leaf curl virus, fruit borer",
-    mitigationStrategies: "Resistant hybrids, IPM"
-  },
-  {
-    id: 102,
-    name: "Brinjal (Long Green)",
-    cropType: "Vegetable",
-    duration: "4-5 months",
-    category: "medium",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "No",
-    primarySoilType: "Red Soil, Black Soil",
-    waterRequirement: "Medium",
-    climateSuitability: "Warm, 25-35°C",
-    irrigationCompatibility: "Drip/Rainfed",
-    suitableDistricts: ["All districts"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Shoot & fruit borer, wilt",
-    mitigationStrategies: "Bt. varieties, IPM"
-  },
-  {
-    id: 103,
-    name: "Chilli (High value)",
-    cropType: "Vegetable",
-    duration: "4-5 months",
-    category: "medium",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "No",
-    primarySoilType: "Red Soil, Black Soil",
-    waterRequirement: "Medium",
-    climateSuitability: "Warm, 20-35°C",
-    irrigationCompatibility: "Drip/Rainfed",
-    suitableDistricts: ["Ghanpur", "Jangoan", "Warangal"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Dieback, thrips, viruses",
-    mitigationStrategies: "Resistant varieties, seed treatment"
-  },
-  // Long-Term Crops (1-30 years)
-  {
-    id: 201,
-    name: "Mango (Benishan)",
-    cropType: "Fruit Tree",
-    duration: "10-20 years",
-    category: "long",
-    supplyStatus: "Low",
-    demandStatus: "Very High",
-    importDependency: "Yes",
-    primarySoilType: "Deep, well-draining Sandy Loam, Red Soil",
-    waterRequirement: "Medium to High",
-    climateSuitability: "Warm, tropical; dry period for flowering",
-    irrigationCompatibility: "Drip recommended",
-    suitableDistricts: ["All districts", "especially Nizamabad, Karimnagar, Jagtial, Medak, Sangareddy"],
-    landAreaSuitability: "Large",
-    riskFactors: "Hopper, Powdery Mildew, Mango Fly, Malnutrition",
-    mitigationStrategies: "Integrated pest management, balanced nutrition"
-  },
-  {
-    id: 202,
-    name: "Pomegranate (Ganesh)",
-    cropType: "Fruit Tree",
-    duration: "8-15 years",
-    category: "long",
-    supplyStatus: "Low",
-    demandStatus: "Very High",
-    importDependency: "No",
-    primarySoilType: "Red Soil, adaptable, well-drained",
-    waterRequirement: "Low",
-    climateSuitability: "Arid to semi-arid, hot/dry climate improves fruit quality",
-    irrigationCompatibility: "Drip",
-    suitableDistricts: ["Mahabubnagar", "Nagarkurnool", "Vikarabad", "Rangareddy"],
-    landAreaSuitability: "Medium",
-    riskFactors: "Bacterial Blight (Xanthomonas), Fruit Borer, Fruit Cracking",
-    mitigationStrategies: "Drought stress management, proper pruning"
-  },
-  {
-    id: 203,
-    name: "Guava (Allahabad Safeda)",
-    cropType: "Fruit Tree",
-    duration: "5-20 years",
-    category: "long",
-    supplyStatus: "Low",
-    demandStatus: "High",
-    importDependency: "No",
-    primarySoilType: "Well-draining Loam, Laterite, tolerates poor soils",
-    waterRequirement: "Medium to High",
-    climateSuitability: "Wide range, 15-35°C; hardy",
-    irrigationCompatibility: "Drip/Rainfed",
-    suitableDistricts: ["All districts", "especially riverine belts (Khammam, Bhadradri)"],
-    landAreaSuitability: "Large",
-    riskFactors: "Fruit Fly, Nematodes, Wilt",
-    mitigationStrategies: "IPM, sanitation"
-  }
-];
+
 
 // All Telangana districts for dropdown
 const TELANGANA_DISTRICTS = [
@@ -279,33 +59,77 @@ const ExploreCropsPage = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // In production, you would use a reverse geocoding API
-          // For now, we'll simulate district detection
+          // Use real Nominatim reverse geocoding API
           const { latitude, longitude } = position.coords;
           
-          // Simulate reverse geocoding (in production, use actual API)
-          // This is a mock mapping - replace with actual geocoding
-          const mockDistrictMapping = {
-            // Hyderabad coordinates
-            '17.3850,78.4867': 'Hyderabad',
-            // Karimnagar coordinates  
-            '18.4386,79.1285': 'Karimnagar',
-            // Nizamabad coordinates
-            '18.6725,78.0943': 'Nizamabad',
-            // Khammam coordinates
-            '17.2473,80.1514': 'Khammam',
-            // Mahabubnagar coordinates
-            '16.7339,77.9793': 'Mahabubnagar'
-          };
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+              { headers: { 'Accept-Language': 'en' } }
+            );
+            const data = await res.json();
+            const addr = data.address;
 
-          const coordKey = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
-          const detectedDistrict = mockDistrictMapping[coordKey] || 'Rangareddy'; // Default fallback
-          
-          setUserDistrict(detectedDistrict);
-          setLocationPermission('granted');
-          setShowLocationPrompt(false);
-          filterCropsByDistrict(detectedDistrict);
-          setIsLoading(false);
+            // Nominatim returns county / state_district for district-level
+            const rawDistrict = addr.county || addr.state_district || addr.city_district || '';
+
+            // Normalize to match your TELANGANA_DISTRICTS list exactly
+            const DISTRICT_MAP = {
+              'hyderabad': 'Hyderabad',
+              'ranga reddy': 'Rangareddy',
+              'rangareddy': 'Rangareddy',
+              'Ranga Reddy': 'Rangareddy',
+              'medchal': 'Medchal-Malkajgiri',
+              'medchal malkajgiri': 'Medchal-Malkajgiri',
+              'medchal-malkajgiri': 'Medchal-Malkajgiri',
+              'nalgonda': 'Nalgonda',
+              'karimnagar': 'Karimnagar',
+              'warangal': 'Warangal',
+              'nizamabad': 'Nizamabad',
+              'khammam': 'Khammam',
+              'adilabad': 'Adilabad',
+              'jagtial': 'Jagtial',
+              'jangaon': 'Jangaon',
+              'jayashankar bhupalpally': 'Jayashankar Bhupalpally',
+              'jogulamba gadwal': 'Jogulamba Gadwal',
+              'kamareddy': 'Kamareddy',
+              'kumuram bheem asifabad': 'Kumuram Bheem Asifabad',
+              'mahabubabad': 'Mahabubabad',
+              'mahabubnagar': 'Mahabubnagar',
+              'mancherial': 'Mancherial',
+              'medak': 'Medak',
+              'mulugu': 'Mulugu',
+              'nagarkurnool': 'Nagarkurnool',
+              'narayanpet': 'Narayanpet',
+              'nirmal': 'Nirmal',
+              'peddapalli': 'Peddapalli',
+              'rajanna sircilla': 'Rajanna Sircilla',
+              'sangareddy': 'Sangareddy',
+              'siddipet': 'Siddipet',
+              'suryapet': 'Suryapet',
+              'vikarabad': 'Vikarabad',
+              'wanaparthy': 'Wanaparthy',
+              'bhadradri kothagudem': 'Bhadradri Kothagudem',
+              'hanamkonda': 'Hanamkonda',
+              'yadadri bhuvanagiri': 'Yadadri Bhuvanagiri',
+            };
+
+            const key = rawDistrict.toLowerCase().trim();
+            const matchedDistrict = DISTRICT_MAP[key] || rawDistrict || 'Hyderabad';
+
+            setUserDistrict(matchedDistrict);
+            setLocationPermission('granted');
+            setShowLocationPrompt(false);
+            filterCropsByDistrict(matchedDistrict);
+            setIsLoading(false);
+
+            console.log('🏘️ Detected Telangana district:', matchedDistrict);
+          } catch (geoError) {
+            console.error('Reverse geocoding failed:', geoError);
+            setUserDistrict('Hyderabad');
+            setSelectedDistrict('Hyderabad');
+            setLocationLoading(false);
+          }
         },
         (error) => {
           console.error('Geolocation error:', error);

@@ -4,6 +4,8 @@ import { Button } from "../components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { ChevronRight, FileText, CreditCard, Users, Home } from "lucide-react";
 import GovernmentSchemeModal from "./GovernmentSchemeModal";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useTranslation } from "../lib/translations";
 
 interface Scheme {
   id: string;
@@ -83,6 +85,8 @@ const schemes: Scheme[] = [
 
 const GovernmentSchemesSection = () => {
   const navigate = useNavigate();
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<
     "agriculture" | "dairy" | "household"
@@ -134,13 +138,12 @@ const GovernmentSchemesSection = () => {
             <div className="space-y-8">
               {/* Main Title */}
               <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-                💰 Government Schemes & Support
+                {t('contact.governmentSchemes')}
               </h2>
 
               {/* Description */}
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Comprehensive repository of government schemes, subsidies, and
-                loan programs for farmers and rural communities
+                {t('contact.governmentSchemesDesc')}
               </p>
 
               {/* Explore Button */}
@@ -148,18 +151,19 @@ const GovernmentSchemesSection = () => {
                 <Button
                   variant="professional"
                   size="lg"
-                  className="px-6 md:px-12 py-3 md:py-4 text-base md:text-lg lg:text-xl font-semibold w-full md:w-auto"
-                  onClick={() => navigate('/explore-schemes')} // Redirect to Government Schemes page
+                  className="px-6 py-3 md:px-12 md:py-4 text-base md:text-lg lg:text-xl font-semibold w-full md:w-auto min-w-[140px] md:min-w-[160px] break-words text-center"
+                  onClick={() => navigate('/explore-schemes')}
                 >
-                  <span className="flex items-center justify-center">
-                    Browse Schemes <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+                  <span className="flex items-center justify-center truncate">
+                    {t('contact.browseSchemes')} 
+                    <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                   </span>
                 </Button>
               </div>
 
               {/* Subtle Hint */}
               <p className="text-sm text-muted-foreground">
-                Access various government support programs and subsidies
+                {t('contact.governmentSupportDesc')}
               </p>
             </div>
           </div>

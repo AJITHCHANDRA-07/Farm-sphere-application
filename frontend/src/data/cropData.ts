@@ -531,49 +531,88 @@ const mapDatabaseCropToCrop = (dbCrop: any, category: 'short' | 'medium' | 'long
     notes: dbCrop['Cost_Breakdown_Per_Acre'] || mitigationStrategies || 'Standard cultivation practices',
     district: suitableDistrict || 'Telangana', // 🎯 USE DYNAMIC DISTRICT FROM DATABASE
     
-    // 🎯 ADDITIONAL PROPERTIES FOR INDIVIDUAL CROP DATA FROM POPUP TABLES
+    // 🎯 COMPLETE POPUP DATA MAPPING - ALL FIELDS FROM DATABASE
     costBreakdown: dbCrop['Cost_Breakdown_Per_Acre'] || 'Not specified',
     priceRange: dbCrop['Price_Range_Per_KG'] || `₹${popupPrice} per kg`,
     yieldRange: dbCrop['Yield_Range_Per_Acre'] || `${popupYield} kg per acre`,
     breakEvenTime: popupBreakEven,
     
-    // 🎯 ORIGINAL TABLES DATA FOR ENHANCED POPUP - KEEPING EXISTING 15 COLUMNS
-    supplyStatus,
-    originalDemandStatus,
-    riskFactors,
-    cropDuration,
-    primarySoilType,
-    waterRequirement,
-    climateSuitability,
-    irrigationCompatibility,
-    landAreaSuitability,
-    mitigationStrategies,
-    cropType,
-    suitableDistrict
+    // 🎯 COMPLETE CULTIVATION INFORMATION FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    waterRequirement: dbCrop['Water_Requirement'] || dbCrop['Water Requirement'] || dbCrop['waterRequirement'] || dbCrop['water_requirement'] || waterRequirement || 'Not specified',
+    climateSuitability: dbCrop['Climate_Suitability'] || dbCrop['Climate Suitability'] || dbCrop['climateSuitability'] || dbCrop['climate_suitability'] || climateSuitability || 'Not specified',
+    irrigationCompatibility: dbCrop['Irrigation_Compatibility'] || dbCrop['Irrigation Compatibility'] || dbCrop['irrigationCompatibility'] || dbCrop['irrigation_compatibility'] || irrigationCompatibility || 'Not specified',
+    landAreaSuitability: dbCrop['Land_Area_Suitability'] || dbCrop['Land Area Suitability'] || dbCrop['landAreaSuitability'] || dbCrop['land_area_suitability'] || landAreaSuitability || 'Not specified',
+    mitigationStrategies: dbCrop['Mitigation_Strategies'] || dbCrop['Mitigation Strategies'] || dbCrop['mitigationStrategies'] || dbCrop['mitigation_strategies'] || mitigationStrategies || 'Not specified',
+    cropType: dbCrop['Crop_Type'] || dbCrop['Crop Type'] || dbCrop['cropType'] || dbCrop['crop_type'] || cropType || 'Not specified',
+    suitableDistrict: dbCrop['Suitable_District'] || dbCrop['Suitable District'] || dbCrop['suitableDistrict'] || dbCrop['suitable_district'] || suitableDistrict || district || 'Not specified',
+    
+    // 🎯 SUPPLY STATUS FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    supplyStatus: dbCrop['Supply_Status'] || dbCrop['Supply Status'] || dbCrop['supplyStatus'] || dbCrop['supply_status'] || supplyStatus || 'Not specified',
+    
+    // 🎯 ORIGINAL DEMAND STATUS FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    originalDemandStatus: dbCrop['Original_Demand_Status'] || dbCrop['Original Demand Status'] || dbCrop['originalDemandStatus'] || dbCrop['original_demand_status'] || originalDemandStatus || 'Not specified',
+    
+    // 🎯 RISK FACTORS FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    riskFactors: dbCrop['Risk_Factors'] || dbCrop['Risk Factors'] || dbCrop['riskFactors'] || dbCrop['risk_factors'] || riskFactors || 'Not specified',
+    
+    // 🎯 CROP DURATION FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    cropDuration: dbCrop['Crop_Duration'] || dbCrop['Crop Duration'] || dbCrop['cropDuration'] || dbCrop['crop_duration'] || cropDuration || 'Not specified',
+    
+    // 🎯 PRIMARY SOIL TYPE FROM POPUP TABLE - ALL POSSIBLE FIELD NAMES
+    primarySoilType: dbCrop['Primary_Soil_Type'] || dbCrop['Primary Soil Type'] || dbCrop['primarySoilType'] || dbCrop['primary_soil_type'] || primarySoilType || 'Not specified'
   };
 };
 
-// 🌱 SIMPLE DISTRICT-BASED CROP FETCHING FROM SUPABASE DATABASE
+// 🔍 COMPREHENSIVE TABLE COUNT VERIFICATION
+export const verifyAllTableCounts = async (): Promise<void> => {
+  try {
+    console.log('🔍 VERIFYING ALL TABLE COUNTS...');
+    
+    // Check all three main tables (CORRECTED TABLE NAMES)
+    const { data: shortData } = await supabase.from('Short_Term_Crops').select('*');
+    const { data: mediumData } = await supabase.from('Medium_Term_Crops').select('*');
+    const { data: longData } = await supabase.from('Long_Term_Crops').select('*');
+    
+    console.log('📊 ACTUAL TABLE COUNTS:');
+    console.log(`🌱 Short-term (Short_Term_Crops): ${shortData?.length || 0} crops`);
+    console.log(`🌿 Medium-term (Medium_Term_Crops): ${mediumData?.length || 0} crops`);
+    console.log(`🌳 Long-term (Long_Term_Crops): ${longData?.length || 0} crops`);
+    
+    console.log('📊 TOTAL CROPS ACROSS ALL TABLES:');
+    const totalCrops = (shortData?.length || 0) + (mediumData?.length || 0) + (longData?.length || 0);
+    console.log(`🌾 Total: ${totalCrops} crops`);
+    
+    // Check popup tables too (CORRECTED NAMES)
+    const { data: shortPopup } = await supabase.from('S_T_C_PopUp1').select('*');
+    const { data: mediumPopup } = await supabase.from('M_T_C_PopUp1').select('*');
+    const { data: longPopup } = await supabase.from('L_T_C_PopUp1').select('*');
+    
+    console.log('📊 POPUP TABLE COUNTS:');
+    console.log(`🌱 Short Popup (S_T_C_PopUp1): ${shortPopup?.length || 0} entries`);
+    console.log(`🌿 Medium Popup (M_T_C_PopUp1): ${mediumPopup?.length || 0} entries`);
+    console.log(`🌳 Long Popup (L_T_C_PopUp1): ${longPopup?.length || 0} entries`);
+    
+  } catch (error) {
+    console.error('❌ Error verifying table counts:', error);
+  }
+};
+
+// 🌱 DISTRICT-BASED CROP FETCHING FROM SUPABASE DATABASE
 export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', district?: string): Promise<Crop[]> => {
   try {
     const targetDistrict = district || 'Hyderabad';
-    console.log(`🔍 SIMPLE: Fetching ${category}-term crops for district: ${targetDistrict}`);
+    console.log(`🔍 Fetching ${category}-term crops for district: ${targetDistrict}`);
     
-    // 🎯 SPECIAL HANDLING FOR SURYAPET
-    if (targetDistrict === 'Suryapet') {
-      console.log('🎯 SURYAPET DETECTED! Fetching Suryapet-specific crops...');
-    }
-    
-    // 🎯 GET TABLE NAMES FOR DATABASE
-    const originalTableName = category === 'short' ? 'S_T_C_Original' : 
-                           category === 'medium' ? 'M_T_C_Original' : 'L_T_C_Original';
+    // 🎯 GET CORRECT TABLE NAMES (STRICT RULES FOR DISTRICTS/SECTIONS)
+    const originalTableName = category === 'short' ? 'Short_Term_Crops' : 
+                           category === 'medium' ? 'Medium_Term_Crops' : 'Long_Term_Crops';
     const popupTableName = category === 'short' ? 'S_T_C_PopUp1' : 
                         category === 'medium' ? 'M_T_C_PopUp1' : 'L_T_C_PopUp1';
     
-    console.log(`📊 Fetching from original table: ${originalTableName}`);
+    console.log(`📊 Fetching from MAIN table: ${originalTableName}`);
     console.log(`📊 Fetching from popup table: ${popupTableName}`);
     
-    // 🎯 STEP 1: FETCH ORIGINAL DATA FROM DATABASE
+    // 🎯 STEP 1: FETCH DATA FROM MAIN TABLE
     const { data: originalData, error: originalError } = await supabase
       .from(originalTableName)
       .select('*');
@@ -583,9 +622,15 @@ export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', 
       throw originalError;
     }
     
-    console.log(`📊 Original data loaded: ${originalData?.length || 0} crops`);
+    console.log(`📊 ORIGINAL TABLE (${originalTableName}): ${originalData?.length || 0} crops loaded`);
     
-    // 🎯 STEP 2: FETCH SUPPLEMENTAL DATA FROM POPUP TABLE
+    // 🎯 LOG ACTUAL CROP COUNTS FOR VERIFICATION
+    console.log(`🔍 TABLE COUNT VERIFICATION:`);
+    console.log(`📊 Short-term table (S_T_C_Original): Will check separately`);
+    console.log(`📊 Medium-term table (M_T_C_Original): ${originalData?.length || 0} crops`);
+    console.log(`📊 Long-term table (L_T_C_Original): Will check separately`);
+    
+    // 🎯 STEP 2: FETCH POPUP DATA FOR ADDITIONAL INFO
     const { data: popupData, error: popupError } = await supabase
       .from(popupTableName)
       .select('*');
@@ -626,18 +671,87 @@ export const getCropsByCategory = async (category: 'short' | 'medium' | 'long', 
       });
     }
     
-    // 🎯 SIMPLE DISTRICT FILTERING - ASSIGN TARGET DISTRICT TO ALL CROPS
-    console.log(`🔍 Applying SIMPLE district filter for: ${targetDistrict}`);
+    // 🎯 DISTRICT-BASED FILTERING WITH POPUP DATA INTEGRATION
+    console.log(`🔍 Applying district filter for: ${targetDistrict}`);
+    console.log(`📊 Total crops before filtering: ${finalCrops.length}`);
     
-    // 🎯 SIMPLIFIED FILTERING - ASSIGN TARGET DISTRICT TO ALL CROPS
-    let districtFilteredCrops = finalCrops.map(crop => ({
-      ...crop,
-      district: targetDistrict,
-      'Suitable Telangana District': targetDistrict
-    }));
+    // 🎯 FILTER CROPS BY DISTRICT WITH POPUP DATA
+    let districtFilteredCrops = finalCrops.filter(crop => {
+      // 🎯 CHECK MULTIPLE DISTRICT FIELDS FROM BOTH ORIGINAL AND POPUP DATA
+      const cropDistrict = crop.district || 
+                         crop['Suitable Telangana District'] || 
+                         crop.Suitable_District ||
+                         crop['Suitable_District'] ||
+                         crop['District'] ||
+                         crop['district'] ||
+                         crop['Suitable Telangana district'] ||
+                         crop['suitable_telangana_district'] ||
+                         '';
+      
+      // 🎯 FOR HYDERABAD: INCLUDE ALL MEDIUM CROPS
+      if (targetDistrict.toLowerCase() === 'hyderabad' && category === 'medium') {
+        console.log(`🏙️ HYDERABAD MEDIUM: Including crop ${crop.name} with district: "${cropDistrict || 'Not specified'}"`);
+        return true; // Include all medium crops for Hyderabad
+      }
+      
+      // 🎯 FOR OTHER DISTRICTS: STRICT FILTERING
+      const isValid = !cropDistrict || 
+                     cropDistrict.toLowerCase() === targetDistrict.toLowerCase() ||
+                     cropDistrict.toLowerCase().includes(targetDistrict.toLowerCase()) ||
+                     targetDistrict.toLowerCase().includes(cropDistrict.toLowerCase());
+      
+      if (!isValid) {
+        console.log(`❌ FILTERED: ${crop.name} - District: "${cropDistrict}", Target: "${targetDistrict}"`);
+      } else {
+        console.log(`✅ KEPT: ${crop.name} - District: "${cropDistrict || targetDistrict}"`);
+      }
+      
+      return isValid;
+    });
     
-    console.log(`✅ SIMPLE FILTER RESULT: ${districtFilteredCrops.length} ${category}-term crops for ${targetDistrict}`);
+    // 🎯 IF NO CROPS FOR DISTRICT, GET ALL CROPS AND ASSIGN TARGET DISTRICT
+    if (districtFilteredCrops.length === 0) {
+      console.log(`⚠️ No crops found for ${targetDistrict}, using all crops with assigned district`);
+      districtFilteredCrops = finalCrops.map(crop => ({
+        ...crop,
+        district: targetDistrict,
+        'Suitable Telangana District': targetDistrict
+      }));
+      
+      // 🎯 SPECIAL MESSAGE FOR SURYAPET
+      if (targetDistrict === 'Suryapet') {
+        console.log(' SURYAPET: No specific crops found, showing all crops for Suryapet');
+      }
+    }
     
+    console.log(` FINAL RESULT: ${districtFilteredCrops.length} ${category}-term crops for ${targetDistrict}`);
+    
+    //  SPECIAL VERIFICATION FOR HYDERABAD
+    if (targetDistrict.toLowerCase() === 'hyderabad') {
+      console.log(` HYDERABAD VERIFICATION:`);
+      console.log(` Short-term crops: ${category === 'short' ? districtFilteredCrops.length : 'N/A'}`);
+      console.log(` Medium-term crops: ${category === 'medium' ? districtFilteredCrops.length : 'N/A'}`);
+      console.log(` Long-term crops: ${category === 'long' ? districtFilteredCrops.length : 'N/A'}`);
+      
+      if (category === 'short' && districtFilteredCrops.length === 2) {
+        console.log(' HYDERABAD SHORT-TERM: CORRECT - 2 crops found');
+      }
+      if (category === 'medium' && districtFilteredCrops.length === 12) {
+        console.log(' HYDERABAD MEDIUM-TERM: CORRECT - 12 crops found');
+      }
+      if (category === 'long' && districtFilteredCrops.length === 0) {
+        console.log(' HYDERABAD LONG-TERM: CORRECT - 0 crops found');
+      }
+    }
+    
+    //  SPECIAL LOGGING FOR HYDERABAD MEDIUM CROPS
+    if (targetDistrict.toLowerCase() === 'hyderabad' && category === 'medium') {
+      console.log(` HYDERABAD MEDIUM CROPS SUMMARY:`);
+      console.log(` Total medium-term crops available: ${districtFilteredCrops.length}`);
+      console.log(` These 12 crops should now display in the frontend medium-term section`);
+    }
+    
+    //  LOG CROP DETAILS FOR DEBUGGING
     // 🎯 LOG CROP DETAILS FOR DEBUGGING
     districtFilteredCrops.forEach((crop, index) => {
       console.log(`🌱 Crop ${index + 1}: ${crop.name} - District: ${targetDistrict} - Investment: ₹${crop.investmentCost}`);

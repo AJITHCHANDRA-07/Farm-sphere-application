@@ -1,0 +1,1681 @@
+import { useState, useMemo, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter, TrendingUp, Clock, Droplets, ArrowUpDown, MapPin, AlertCircle, Loader2 } from "lucide-react";
+import CropDetailModal from "@/components/CropDetailModal";
+import { Crop, getCropsByCategory, getCropsByCategorySync } from "@/data/cropData";
+
+// 🔹 STRICT DISTRICT COUNT MAPPING SYSTEM
+const DISTRICT_CROP_LIMITS: Record<string, { short_term: number; medium_term: number; long_term: number }> = {
+  "Adilabad": { short_term: 45, medium_term: 52, long_term: 68 },
+  "Bhadradri Kothagudem": { short_term: 48, medium_term: 55, long_term: 71 },
+  "Hanumakonda": { short_term: 51, medium_term: 58, long_term: 74 },
+  "Hyderabad": { short_term: 42, medium_term: 48, long_term: 63 },
+  "Jagtial": { short_term: 46, medium_term: 53, long_term: 69 },
+  "Jangaon": { short_term: 44, medium_term: 50, long_term: 66 },
+  "Jayashankar Bhupalpally": { short_term: 47, medium_term: 54, long_term: 70 },
+  "Jogulamba Gadwal": { short_term: 43, medium_term: 49, long_term: 65 },
+  "Kamareddy": { short_term: 49, medium_term: 56, long_term: 72 },
+  "Karimnagar": { short_term: 50, medium_term: 57, long_term: 73 },
+  "Khammam": { short_term: 52, medium_term: 59, long_term: 75 },
+  "Kumuram Bheem": { short_term: 45, medium_term: 51, long_term: 67 },
+  "Mahabubabad": { short_term: 46, medium_term: 52, long_term: 68 },
+  "Mahabubnagar": { short_term: 48, medium_term: 54, long_term: 70 },
+  "Mancherial": { short_term: 47, medium_term: 53, long_term: 69 },
+  "Medak": { short_term: 44, medium_term: 50, long_term: 66 },
+  "Medchal Malkajgiri": { short_term: 53, medium_term: 60, long_term: 76 },
+  "Mulugu": { short_term: 43, medium_term: 49, long_term: 65 },
+  "Nagarkurnool": { short_term: 46, medium_term: 52, long_term: 68 },
+  "Nalgonda": { short_term: 51, medium_term: 61, long_term: 75 },
+  "Narayanpet": { short_term: 42, medium_term: 47, long_term: 63 },
+  "Nirmal": { short_term: 44, medium_term: 50, long_term: 66 },
+  "Nizamabad": { short_term: 49, medium_term: 56, long_term: 72 },
+  "Peddapalli": { short_term: 47, medium_term: 53, long_term: 69 },
+  "Rajanna Sircilla": { short_term: 45, medium_term: 51, long_term: 67 },
+  "Rangareddy": { short_term: 62, medium_term: 69, long_term: 92 },
+  "Sangareddy": { short_term: 50, medium_term: 57, long_term: 73 },
+  "Siddipet": { short_term: 48, medium_term: 54, long_term: 70 },
+  "Suryapet": { short_term: 49, medium_term: 55, long_term: 71 },
+  "Vikarabad": { short_term: 46, medium_term: 52, long_term: 68 },
+  "Wanaparthy": { short_term: 43, medium_term: 49, long_term: 65 },
+  "Warangal": { short_term: 51, medium_term: 58, long_term: 74 },
+  "Yadadri Bhuvanagiri": { short_term: 47, medium_term: 53, long_term: 69 }
+};
+
+const ExploreCropsUltraProFinal = () => {
+  const [activeTab, setActiveTab] = useState<'short' | 'medium' | 'long'>('short');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'profit' | 'name' | 'duration'>('profit');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [waterFilter, setWaterFilter] = useState<string>('all');
+  const [demandFilter, setDemandFilter] = useState<string>('all');
+  const [userLocation, setUserLocation] = useState<{ district: string; state: string; error?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [shortTermCrops, setShortTermCrops] = useState<Crop[]>([]);
+  const [mediumTermCrops, setMediumTermCrops] = useState<Crop[]>([]);
+  const [longTermCrops, setLongTermCrops] = useState<Crop[]>([]);
+  const [selectedCrop, setSelectedCrop] = useState<Crop | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 🎯 GLOBAL VARIABLE FOR LOCATION WATCHING
+  const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
+
+  const openModal = (crop: Crop) => {
+    setSelectedCrop(crop);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedCrop(null);
+  };
+
+  // 🔹 IMMEDIATE SURYAPET LOCATION DETECTION (USER IS IN SURYAPET)
+  useEffect(() => {
+    // 🎯 SCROLL TO TOP WHEN PAGE LOADS
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    
+    console.log('🚀 Starting IMMEDIATE SURYAPET location detection...');
+    console.log('🌐 Environment:', window.location.hostname);
+    console.log('📍 GPS Available:', navigator.geolocation ? 'YES' : 'NO');
+    console.log('📱 Device Type:', /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+    console.log('🌐 HTTPS Secure:', window.isSecureContext || window.location.protocol === 'https:');
+    console.log('🔍 Current URL:', window.location.href);
+    
+    const initializeLocation = async () => {
+      try {
+        setLoading(true);
+        
+        // 🎯 COMPLETE STORAGE RESET
+        console.log('🧹 COMPLETE storage reset...');
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 🎯 STEP 1: IMMEDIATE GPS WITH NO DELAYS
+        if (navigator.geolocation) {
+          console.log('🛰️ Starting IMMEDIATE GPS detection...');
+          
+          try {
+            // 🎯 DIRECT GPS REQUEST - NO PERMISSION CHECK DELAYS
+            console.log('📍 Requesting GPS immediately...');
+            
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                reject(new Error('GPS timeout - no location received'));
+              }, 15000); // 15 second timeout
+              
+              navigator.geolocation.getCurrentPosition(
+                function (position) {
+                  clearTimeout(timeout);
+                  console.log('📍 IMMEDIATE GPS SUCCESS:', {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    altitude: position.coords.altitude,
+                    heading: position.coords.heading,
+                    speed: position.coords.speed,
+                    timestamp: new Date(position.timestamp).toISOString()
+                  });
+                  resolve(position);
+                },
+                function (error) {
+                  clearTimeout(timeout);
+                  console.error('❌ IMMEDIATE GPS FAILED:', error.code, error.message);
+                  
+                  // 🎯 DETAILED ERROR LOGGING
+                  switch(error.code) {
+                    case 1:
+                      console.error('❌ PERMISSION_DENIED - User denied location');
+                      alert('📍 Location permission denied!\n\nPlease:\n1. Click location icon (📍) in your browser\n2. Select "Allow" or "Allow location access"\n3. Refresh this page');
+                      break;
+                    case 2:
+                      console.error('❌ POSITION_UNAVAILABLE - Network or GPS issue');
+                      break;
+                    case 3:
+                      console.error('❌ TIMEOUT - GPS took too long');
+                      break;
+                  }
+                  
+                  reject(error);
+                },
+                {
+                  enableHighAccuracy: true,
+                  timeout: 15000,
+                  maximumAge: 0 // ABSOLUTELY NO CACHE
+                }
+              );
+            });
+            
+            console.log('🎯 GPS POSITION RECEIVED:', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            });
+            
+            // 🎯 CONVERT TO DISTRICT
+            const district = await getDistrictFromCoordinates(position.coords.latitude, position.coords.longitude);
+            
+            console.log('🔍 DISTRICT CONVERSION RESULT:', district);
+            console.log('📍 GPS Coordinates:', position.coords.latitude, position.coords.longitude);
+            
+            if (district && validateTelanganaDistrict(district)) {
+              console.log('✅ VALID TELANGANA DISTRICT DETECTED:', district);
+              
+              // 🎯 SPECIAL HANDLING FOR SURYAPET
+              if (district === 'Suryapet') {
+                console.log('🎯 SURYAPET DETECTED! User is in Suryapet district!');
+                alert('🎯 SURYAPET DETECTED!\n\nLocation: Suryapet, Telangana\nLoading Suryapet-specific crops from database...');
+              }
+              
+              setUserLocation({
+                district: district,
+                state: 'Telangana'
+              });
+              
+              // 🎯 STORE FRESH LOCATION
+              localStorage.setItem('userDistrict', district);
+              localStorage.setItem('userCoordinates', `${position.coords.latitude},${position.coords.longitude}`);
+              localStorage.setItem('locationMethod', 'GPS-IMMEDIATE');
+              localStorage.setItem('locationTimestamp', new Date().toISOString());
+              localStorage.setItem('locationAccuracy', position.coords.accuracy.toString());
+              
+              console.log('✅ IMMEDIATE GPS SUCCESS - Fresh location detected!');
+              setLoading(false);
+              return;
+            } else {
+              console.log('❌ GPS coordinates not in Telangana region');
+              console.log('📍 This might be your actual location outside Telangana');
+              
+              // 🎯 SHOW ACTUAL COORDINATES FOR DEBUGGING
+              alert(`📍 GPS detected location:\n\nCoordinates: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}\nDetected District: ${district || 'Unknown'}\n\nIf you are in Suryapet, this might be a GPS error. Try:\n1. Moving to a window/open area\n2. Refreshing the page\n3. Checking location permissions`);
+            }
+            
+          } catch (gpsError) {
+            console.log('❌ IMMEDIATE GPS failed:', gpsError.message);
+            
+            // 🎯 IMMEDIATE ERROR HANDLING
+            if (gpsError.message.includes('Permission denied') || gpsError.message.includes('PERMISSION_DENIED')) {
+              console.log('🔒 GPS PERMISSION DENIED');
+              alert('📍 Location permission denied!\n\nPlease:\n1. Click location icon in browser\n2. Select "Allow" for location\n3. Refresh this page');
+              throw new Error('GPS permission denied');
+            } else if (gpsError.message.includes('timeout')) {
+              console.log('⏰ GPS TIMEOUT - Trying IP location immediately...');
+            } else {
+              console.log('❓ GPS ERROR - Trying IP location...');
+            }
+          }
+        } else {
+          console.log('❌ GPS NOT AVAILABLE - Device may not have GPS');
+          alert('📍 GPS not available on this device. Using IP-based location detection.');
+        }
+        
+        // 🎯 STEP 2: IP LOCATION FALLBACK
+        console.log('🌐 Starting IP-based location detection...');
+        await getLocationFromIP();
+        
+      } catch (error) {
+        console.error('❌ Complete location detection failed:', error);
+        console.log('🔄 Using fallback location...');
+        await fallbackToDefaultLocation();
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // 🎯 START IMMEDIATELY - NO DELAYS
+    console.log('🚀 Starting IMMEDIATE location detection NOW...');
+    initializeLocation();
+    
+  }, []);
+    
+  // 🎯 LOAD REAL CROPS FROM DATABASE FOR DETECTED DISTRICT
+  const loadCropsFromDatabase = async () => {
+    try {
+      console.log('🔄 Starting REAL database fetch for crops...');
+      const currentDistrict = userLocation?.district || 'Hyderabad';
+      console.log('📍 Fetching REAL crops for detected district:', currentDistrict);
+      
+      // 🎯 FETCH REAL DATABASE CROPS FOR DETECTED DISTRICT
+      const shortCrops = await getCropsByCategory('short', currentDistrict);
+      console.log('📊 REAL Short crops fetched:', shortCrops.length, shortCrops.map(c => `${c.name} (${c.district})`));
+      
+      const mediumCrops = await getCropsByCategory('medium', currentDistrict);
+      console.log('📊 REAL Medium crops fetched:', mediumCrops.length, mediumCrops.map(c => `${c.name} (${c.district})`));
+      
+      const longCrops = await getCropsByCategory('long', currentDistrict);
+      console.log('📊 REAL Long crops fetched:', longCrops.length, longCrops.map(c => `${c.name} (${c.district})`));
+
+      // 🎯 SET REAL CROPS FOR DETECTED DISTRICT
+      setShortTermCrops(shortCrops);
+      setMediumTermCrops(mediumCrops);
+      setLongTermCrops(longCrops);
+      setLoading(false);
+
+      console.log('✅ REAL Crops loaded successfully from database:', {
+        detectedDistrict: currentDistrict,
+        short: shortCrops.length,
+        medium: mediumCrops.length,
+        long: longCrops.length,
+        total: shortCrops.length + mediumCrops.length + longCrops.length
+      });
+      
+      // 🎯 LOG SAMPLE CROP DETAILS FOR VERIFICATION
+      if (shortCrops.length > 0) {
+        console.log('🌱 Sample Short Crop:', {
+          name: shortCrops[0].name,
+          district: shortCrops[0].district,
+          investment: shortCrops[0].investmentCost,
+          profit: shortCrops[0].profitPerAcre,
+          duration: shortCrops[0].duration
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading REAL crops from database:', error);
+      
+      // 🎯 FALLBACK TO STATIC DATA WITH DISTRICT FILTERING
+      const allShortCrops = getCropsByCategorySync('short');
+      const allMediumCrops = getCropsByCategorySync('medium');
+      const allLongCrops = getCropsByCategorySync('long');
+      
+      const currentDistrict = userLocation?.district || 'Rangareddy';
+      
+      // 🎯 FILTER STATIC CROPS BY DISTRICT
+      const filteredShortCrops = allShortCrops.filter(crop => 
+        crop.district === currentDistrict || !crop.district
+      );
+      const filteredMediumCrops = allMediumCrops.filter(crop => 
+        crop.district === currentDistrict || !crop.district
+      );
+      const filteredLongCrops = allLongCrops.filter(crop => 
+        crop.district === currentDistrict || !crop.district
+      );
+      
+      console.log('📊 Fallback crops filtered:', {
+        district: currentDistrict,
+        short: filteredShortCrops.length,
+        medium: filteredMediumCrops.length,
+        long: filteredLongCrops.length
+      });
+      
+      setShortTermCrops(filteredShortCrops);
+      setMediumTermCrops(filteredMediumCrops);
+      setLongTermCrops(filteredLongCrops);
+      setLoading(false);
+    }
+  };
+
+    
+  // 🔄 LOAD CROPS WHEN LOCATION CHANGES
+  useEffect(() => {
+    if (userLocation?.district) {
+      console.log('🔄 Loading crops for district:', userLocation.district);
+      // 🎯 SCROLL TO TOP WHEN LOCATION CHANGES
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      loadCropsFromDatabase();
+    }
+  }, [userLocation?.district]);
+
+  // 🎯 HELPER FUNCTION: GET LOCATION METHOD FOR VERCEL
+  const getLocationMethod = () => {
+    const hostname = window.location.hostname;
+    if (hostname.includes('vercel.app')) {
+      return 'VERCEL-PRODUCTION';
+    } else if (hostname.includes('localhost')) {
+      return 'LOCAL-DEVELOPMENT';
+    } else if (hostname.includes('192.168')) {
+      return 'NETWORK-DEVELOPMENT';
+    } else {
+      return 'UNKNOWN';
+    }
+  };
+
+  // 🎯 HELPER FUNCTION: GET CURRENT DEVICE LOCATION (GPS-FIRST FOR ACCURACY)
+  const getCurrentDeviceLocation = async () => {
+    if (navigator.geolocation) {
+      console.log('📍 Getting device GPS location (priority mode)...');
+      
+      // 🎯 GPS-FIRST STRATEGY: Prioritize GPS accuracy over IP fallback
+      let locationResolved = false;
+      
+      // Set a timeout to fallback to IP location if GPS takes too long
+      const fallbackTimeout = setTimeout(async () => {
+        if (!locationResolved) {
+          console.log('⏰ GPS taking too long, switching to IP-based location...');
+          locationResolved = true;
+          await getLocationFromIP();
+        }
+      }, 5000); // Increased to 5 seconds to give GPS more chance
+      
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          if (!locationResolved) {
+            clearTimeout(fallbackTimeout);
+            locationResolved = true;
+            
+            console.log('📍 Accurate GPS location detected:', position.coords.latitude, position.coords.longitude);
+            
+            try {
+              // 🎯 CONVERT COORDINATES TO DISTRICT
+              const district = await getDistrictFromCoordinates(position.coords.latitude, position.coords.longitude);
+              
+              if (district) {
+                setUserLocation({
+                  district: district,
+                  state: 'Telangana'
+                });
+                
+                localStorage.setItem('userDistrict', district);
+                localStorage.setItem('userCoordinates', `${position.coords.latitude},${position.coords.longitude}`);
+                
+                console.log('✅ Accurate GPS-based location set:', district);
+              } else {
+                console.log('❌ GPS coordinates could not be mapped to district, using IP fallback...');
+                await getLocationFromIP();
+              }
+            } catch (error) {
+              console.log('❌ GPS district mapping failed, using IP fallback:', error);
+              await getLocationFromIP();
+            }
+          }
+        },
+        async (error) => {
+          if (!locationResolved) {
+            clearTimeout(fallbackTimeout);
+            locationResolved = true;
+            console.log('❌ GPS access denied, trying IP-based location...');
+            await getLocationFromIP();
+          }
+        },
+        {
+          enableHighAccuracy: true, // 🎯 ENABLE HIGH ACCURACY FOR GPS PRIORITY
+          timeout: 5000, // Give GPS 5 seconds to respond
+          maximumAge: 300000 // Use 5 minutes cache for GPS
+        }
+      );
+    } else {
+      console.log('❌ Geolocation not supported, trying IP-based location...');
+      await getLocationFromIP();
+    }
+  };
+
+  // 🎯 NETWORK-OPTIMIZED IP LOCATION DETECTION
+  const getLocationFromIP = async () => {
+    console.log('🌐 Starting NETWORK-OPTIMIZED IP location detection...');
+    
+    // 🎯 RELIABLE IP SERVICES WITH FALLBACKS
+    const ipServices = [
+      {
+        name: 'ipapi.co',
+        url: 'https://ipapi.co/json/',
+        mapper: (data: any) => ({ city: data.city, region: data.region, country: data.country_name })
+      },
+      {
+        name: 'ip-api.com',
+        url: 'http://ip-api.com/json/',
+        mapper: (data: any) => ({ city: data.city, region: data.regionName, country: data.country })
+      },
+      {
+        name: 'ipgeolocation.io',
+        url: 'https://api.ipgeolocation.io/ipgeo?apiKey=free',
+        mapper: (data: any) => ({ city: data.city, region: data.state_prov, country: data.country_name })
+      },
+      {
+        name: 'ipinfo.io',
+        url: 'https://ipinfo.io/json',
+        mapper: (data: any) => ({ city: data.city, region: data.region, country: data.country })
+      },
+      {
+        name: 'freeipapi.com',
+        url: 'https://freeipapi.com/api/json/',
+        mapper: (data: any) => ({ city: data.cityName, region: data.regionName, country: data.countryCode })
+      }
+    ];
+    
+    for (const service of ipServices) {
+      try {
+        console.log(`🌐 Trying ${service.name}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased timeout
+        
+        const response = await fetch(service.url, {
+          signal: controller.signal,
+          headers: { 
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          mode: 'cors' // Ensure CORS is handled
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const location = service.mapper(data);
+        
+        console.log(`🌐 ${service.name} SUCCESS:`, location);
+        
+        console.log(`🌐 ${service.name} success:`, location);
+        
+        // 🎯 CHECK IF IN INDIA/TELANGANA REGION
+        if (location.country && (location.country.includes('India') || location.country.includes('IN'))) {
+          console.log('✅ Confirmed India location');
+          
+          // 🎯 MAP CITY TO TELANGANA DISTRICT
+          const district = mapCityToTelanganaDistrict(location.city);
+          
+          console.log('🌐 IP-based district mapping:', location.city, '→', district);
+          
+          // 🎯 VALIDATE DISTRICT IS OFFICIAL TELANGANA DISTRICT
+          if (validateTelanganaDistrict(district)) {
+            console.log(`✅ VALID Telangana district detected: ${district}`);
+            
+            setUserLocation({
+              district: district,
+              state: 'Telangana'
+            });
+            
+            localStorage.setItem('userDistrict', district);
+            localStorage.setItem('userCity', location.city);
+            localStorage.setItem('locationMethod', `IP-${service.name}`);
+            localStorage.setItem('locationTimestamp', new Date().toISOString());
+            
+            console.log('✅ IP-based location set:', district);
+            setLoading(false);
+            return;
+          } else {
+            console.log(`❌ District "${district}" is not a valid Telangana district`);
+          }
+        } else {
+          console.log(`❌ District "${district}" is not a valid Telangana district`);
+        }
+      } catch (error) {
+        console.error(` ${service.name} failed:`, error.message);
+        console.error(` Network error details:`, error);
+        
+        // CHECK IF IT'S A NETWORK ERROR
+        if (error.message.includes('Failed to fetch') || 
+            error.message.includes('NetworkError') || 
+            error.message.includes('fetch') ||
+            error.name === 'TypeError') {
+          console.log(' NETWORK ERROR - Trying next service...');
+          continue;
+        }
+        
+        continue;
+      }
+    }
+    
+    // ALL IP SERVICES FAILED - USE DEFAULT TELANGANA DISTRICT
+    console.log(' All IP services failed, checking network status...');
+    
+    // CHECK NETWORK CONNECTIVITY
+    if (!navigator.onLine) {
+      console.log(' OFFLINE - No network connection');
+      alert(' No network connection detected!\n\nPlease check your internet connection and refresh the page.');
+    } else {
+      console.log(' ONLINE but IP services failed - Using fallback location');
+      
+      // 🎯 TRY TO GET LOCATION FROM BROWSER TIMEZONE
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('🕐 Browser timezone:', timezone);
+      
+      // 🎯 INDIAN TIMEZONES - LIKELY TELANGANA
+      if (timezone.includes('Kolkata') || timezone.includes('Chennai') || timezone.includes('Mumbai') || timezone.includes('New Delhi')) {
+        console.log('🇮🇳 Indian timezone detected - using Hyderabad as default');
+        const fallbackDistrict = 'Hyderabad';
+        setUserLocation({
+          district: fallbackDistrict,
+          state: 'Telangana'
+        });
+        localStorage.setItem('userDistrict', fallbackDistrict);
+        return;
+      }
+      
+      // 🎯 TRY TO GET LOCATION FROM BROWSER LANGUAGE
+      const browserLang = navigator.language || navigator.languages?.[0];
+      console.log('🌐 Browser language:', browserLang);
+      
+      if (browserLang.includes('en-IN') || browserLang.includes('te') || browserLang.includes('hi')) {
+        console.log('🇮🇳 Indian language detected - using Hyderabad as default');
+        const fallbackDistrict = 'Hyderabad';
+        setUserLocation({
+          district: fallbackDistrict,
+          state: 'Telangana'
+        });
+    }
+  }
+  
+  // ALL IP SERVICES FAILED - USE DEFAULT TELANGANA DISTRICT
+  console.log(' All IP services failed, checking network status...');
+  
+  // CHECK NETWORK CONNECTIVITY
+  if (!navigator.onLine) {
+    console.log(' OFFLINE - No network connection');
+    alert(' No network connection detected!\n\nPlease check your internet connection and refresh the page.');
+  } else {
+    console.log(' ONLINE but IP services failed - Using fallback location');
+    
+    // 🎯 TRY TO GET LOCATION FROM BROWSER TIMEZONE
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log('🕐 Browser timezone:', timezone);
+    
+    // 🎯 INDIAN TIMEZONES - LIKELY TELANGANA
+    if (timezone.includes('Kolkata') || timezone.includes('Chennai') || timezone.includes('Mumbai') || timezone.includes('New Delhi')) {
+      console.log('🇮🇳 Indian timezone detected - using Hyderabad as default');
+      const fallbackDistrict = 'Hyderabad';
+      setUserLocation({
+        district: fallbackDistrict,
+        state: 'Telangana'
+      });
+      localStorage.setItem('userDistrict', fallbackDistrict);
+      return;
+    }
+    
+    // 🎯 TRY TO GET LOCATION FROM BROWSER LANGUAGE
+    const browserLang = navigator.language || navigator.languages?.[0];
+    console.log('🌐 Browser language:', browserLang);
+    
+    if (browserLang.includes('en-IN') || browserLang.includes('te') || browserLang.includes('hi')) {
+      console.log('🇮🇳 Indian language detected - using Hyderabad as default');
+      const fallbackDistrict = 'Hyderabad';
+      setUserLocation({
+        district: fallbackDistrict,
+        state: 'Telangana'
+      });
+      localStorage.setItem('userDistrict', fallbackDistrict);
+      return;
+    }
+  }
+  
+  // 🎯 FALLBACK TO DEFAULT LOCATION (NOW SURYAPET)
+  const fallbackToDefaultLocation = async () => {
+    console.log('🔄 Using fallback location...');
+    
+    // 🎯 SET TO SURYAPET AS REQUESTED BY USER
+    const fallbackDistrict = 'Suryapet';
+    setUserLocation({
+      district: fallbackDistrict,
+      state: 'Telangana'
+    });
+    
+    localStorage.setItem('userDistrict', fallbackDistrict);
+    console.log('✅ Fallback location set to SURYAPET:', fallbackDistrict);
+    console.log('🌾 User is in Suryapet - Loading Suryapet-specific crops from database');
+  };
+
+  fallbackToDefaultLocation();
+
+  // 🎯 PRECISE BOUNDARY-BASED DISTRICT DETECTION (33 TELANGANA DISTRICTS)
+  const getDistrictFromCoordinates = async (lat: number, lon: number): Promise<string | null> => {
+    console.log(`🔍 PRECISE BOUNDARY detection: ${lat}, ${lon} to Telangana district`);
+    
+    // 🎯 ACCURATE TELANGANA DISTRICT BOUNDARIES (FROM YOUR DATA)
+    const districtBoundaries = [
+      {
+        name: 'Adilabad',
+        bounds: {
+          north: 19.90, south: 19.20, east: 78.80, west: 77.40,
+          northeast: [19.90, 78.80], northwest: [19.90, 77.40],
+          southeast: [19.20, 78.80], southwest: [19.20, 77.40]
+        }
+      },
+      {
+        name: 'Bhadradri Kothagudem',
+        bounds: {
+          north: 18.90, south: 17.60, east: 81.00, west: 80.10,
+          northeast: [18.90, 81.00], northwest: [18.90, 80.10],
+          southeast: [17.60, 81.00], southwest: [17.60, 80.10]
+        }
+      },
+      {
+        name: 'Hyderabad',
+        bounds: {
+          north: 17.60, south: 17.30, east: 78.60, west: 78.30,
+          northeast: [17.60, 78.60], northwest: [17.60, 78.30],
+          southeast: [17.30, 78.60], southwest: [17.30, 78.30]
+        }
+      },
+      {
+        name: 'Jagtial',
+        bounds: {
+          north: 18.90, south: 18.30, east: 78.90, west: 78.20,
+          northeast: [18.90, 78.90], northwest: [18.90, 78.20],
+          southeast: [18.30, 78.90], southwest: [18.30, 78.20]
+        }
+      },
+      {
+        name: 'Jangaon',
+        bounds: {
+          north: 17.90, south: 17.50, east: 79.50, west: 79.00,
+          northeast: [17.90, 79.50], northwest: [17.90, 79.00],
+          southeast: [17.50, 79.50], southwest: [17.50, 79.00]
+        }
+      },
+      {
+        name: 'Jayashankar Bhupalpally',
+        bounds: {
+          north: 18.80, south: 17.80, east: 80.60, west: 79.60,
+          northeast: [18.80, 80.60], northwest: [18.80, 79.60],
+          southeast: [17.80, 80.60], southwest: [17.80, 79.60]
+        }
+      },
+      {
+        name: 'Jogulamba Gadwal',
+        bounds: {
+          north: 16.40, south: 15.80, east: 77.70, west: 76.90,
+          northeast: [16.40, 77.70], northwest: [16.40, 76.90],
+          southeast: [15.80, 77.70], southwest: [15.80, 76.90]
+        }
+      },
+      {
+        name: 'Kamareddy',
+        bounds: {
+          north: 18.60, south: 18.00, east: 78.60, west: 77.80,
+          northeast: [18.60, 78.60], northwest: [18.60, 77.80],
+          southeast: [18.00, 78.60], southwest: [18.00, 77.80]
+        }
+      },
+      {
+        name: 'Karimnagar',
+        bounds: {
+          north: 18.60, south: 17.90, east: 79.40, west: 78.80,
+          northeast: [18.60, 79.40], northwest: [18.60, 78.80],
+          southeast: [17.90, 79.40], southwest: [17.90, 78.80]
+        }
+      },
+      {
+        name: 'Khammam',
+        bounds: {
+          north: 17.60, south: 16.90, east: 80.30, west: 79.70,
+          northeast: [17.60, 80.30], northwest: [17.60, 79.70],
+          southeast: [16.90, 80.30], southwest: [16.90, 79.70]
+        }
+      },
+      {
+        name: 'Komaram Bheem Asifabad',
+        bounds: {
+          north: 19.60, south: 18.80, east: 79.00, west: 78.20,
+          northeast: [19.60, 79.00], northwest: [19.60, 78.20],
+          southeast: [18.80, 79.00], southwest: [18.80, 78.20]
+        }
+      },
+      {
+        name: 'Mahabubabad',
+        bounds: {
+          north: 17.90, south: 17.10, east: 80.20, west: 79.50,
+          northeast: [17.90, 80.20], northwest: [17.90, 79.50],
+          southeast: [17.10, 80.20], southwest: [17.10, 79.50]
+        }
+      },
+      {
+        name: 'Mahabubnagar',
+        bounds: {
+          north: 17.30, south: 16.40, east: 78.30, west: 77.30,
+          northeast: [17.30, 78.30], northwest: [17.30, 77.30],
+          southeast: [16.40, 78.30], southwest: [16.40, 77.30]
+        }
+      },
+      {
+        name: 'Mancherial',
+        bounds: {
+          north: 19.40, south: 18.70, east: 79.80, west: 78.90,
+          northeast: [19.40, 79.80], northwest: [19.40, 78.90],
+          southeast: [18.70, 79.80], southwest: [18.70, 78.90]
+        }
+      },
+      {
+        name: 'Medak',
+        bounds: {
+          north: 18.20, south: 17.60, east: 78.30, west: 77.70,
+          northeast: [18.20, 78.30], northwest: [18.20, 77.70],
+          southeast: [17.60, 78.30], southwest: [17.60, 77.70]
+        }
+      },
+      {
+        name: 'Medchal–Malkajgiri',
+        bounds: {
+          north: 17.70, south: 17.40, east: 78.70, west: 78.30,
+          northeast: [17.70, 78.70], northwest: [17.70, 78.30],
+          southeast: [17.40, 78.70], southwest: [17.40, 78.30]
+        }
+      },
+      {
+        name: 'Mulugu',
+        bounds: {
+          north: 18.90, south: 17.80, east: 80.90, west: 79.90,
+          northeast: [18.90, 80.90], northwest: [18.90, 79.90],
+          southeast: [17.80, 80.90], southwest: [17.80, 79.90]
+        }
+      },
+      {
+        name: 'Nagarkurnool',
+        bounds: {
+          north: 16.90, south: 16.10, east: 78.90, west: 77.80,
+          northeast: [16.90, 78.90], northwest: [16.90, 77.80],
+          southeast: [16.10, 78.90], southwest: [16.10, 77.80]
+        }
+      },
+      {
+        name: 'Nalgonda',
+        bounds: {
+          north: 17.40, south: 16.70, east: 80.00, west: 78.90,
+          northeast: [17.40, 80.00], northwest: [17.40, 78.90],
+          southeast: [16.70, 80.00], southwest: [16.70, 78.90]
+        }
+      },
+      {
+        name: 'Narayanpet',
+        bounds: {
+          north: 17.10, south: 16.10, east: 77.70, west: 76.90,
+          northeast: [17.10, 77.70], northwest: [17.10, 76.90],
+          southeast: [16.10, 77.70], southwest: [16.10, 76.90]
+        }
+      },
+      {
+        name: 'Nirmal',
+        bounds: {
+          north: 19.40, south: 18.80, east: 79.00, west: 78.10,
+          northeast: [19.40, 79.00], northwest: [19.40, 78.10],
+          southeast: [18.80, 79.00], southwest: [18.80, 78.10]
+        }
+      },
+      {
+        name: 'Nizamabad',
+        bounds: {
+          north: 18.80, south: 18.10, east: 78.60, west: 77.90,
+          northeast: [18.80, 78.60], northwest: [18.80, 77.90],
+          southeast: [18.10, 78.60], southwest: [18.10, 77.90]
+        }
+      },
+      {
+        name: 'Peddapalli',
+        bounds: {
+          north: 18.90, south: 18.20, east: 79.60, west: 78.90,
+          northeast: [18.90, 79.60], northwest: [18.90, 78.90],
+          southeast: [18.20, 79.60], southwest: [18.20, 78.90]
+        }
+      },
+      {
+        name: 'Rajanna Sircilla',
+        bounds: {
+          north: 18.70, south: 18.10, east: 78.90, west: 78.30,
+          northeast: [18.70, 78.90], northwest: [18.70, 78.30],
+          southeast: [18.10, 78.90], southwest: [18.10, 78.30]
+        }
+      },
+      {
+        name: 'Rangareddy',
+        bounds: {
+          north: 17.60, south: 16.90, east: 78.60, west: 77.80,
+          northeast: [17.60, 78.60], northwest: [17.60, 77.80],
+          southeast: [16.90, 78.60], southwest: [16.90, 77.80]
+        }
+      },
+      {
+        name: 'Sangareddy',
+        bounds: {
+          north: 18.10, south: 17.40, east: 78.40, west: 77.50,
+          northeast: [18.10, 78.40], northwest: [18.10, 77.50],
+          southeast: [17.40, 78.40], southwest: [17.40, 77.50]
+        }
+      },
+      {
+        name: 'Siddipet',
+        bounds: {
+          north: 18.40, south: 17.60, east: 79.20, west: 78.40,
+          northeast: [18.40, 79.20], northwest: [18.40, 78.40],
+          southeast: [17.60, 79.20], southwest: [17.60, 78.40]
+        }
+      },
+      {
+        name: 'Suryapet',
+        bounds: {
+          north: 17.50, south: 16.90, east: 80.60, west: 79.80,
+          northeast: [17.50, 80.60], northwest: [17.50, 79.80],
+          southeast: [16.90, 80.60], southwest: [16.90, 79.80]
+        }
+      },
+      {
+        name: 'Vikarabad',
+        bounds: {
+          north: 17.60, south: 16.90, east: 78.10, west: 77.30,
+          northeast: [17.60, 78.10], northwest: [17.60, 77.30],
+          southeast: [16.90, 78.10], southwest: [16.90, 77.30]
+        }
+      },
+      {
+        name: 'Wanaparthy',
+        bounds: {
+          north: 16.60, south: 16.00, east: 78.40, west: 77.80,
+          northeast: [16.60, 78.40], northwest: [16.60, 77.80],
+          southeast: [16.00, 78.40], southwest: [16.00, 77.80]
+        }
+      },
+      {
+        name: 'Warangal',
+        bounds: {
+          north: 18.10, south: 17.60, east: 79.90, west: 79.30,
+          northeast: [18.10, 79.90], northwest: [18.10, 79.30],
+          southeast: [17.60, 79.90], southwest: [17.60, 79.30]
+        }
+      },
+      {
+        name: 'Hanamkonda',
+        bounds: {
+          north: 18.10, south: 17.90, east: 79.70, west: 79.30,
+          northeast: [18.10, 79.70], northwest: [18.10, 79.30],
+          southeast: [17.90, 79.70], southwest: [17.90, 79.30]
+        }
+      },
+      {
+        name: 'Yadadri Bhuvanagiri',
+        bounds: {
+          north: 17.70, south: 17.20, east: 79.60, west: 78.90,
+          northeast: [17.70, 79.60], northwest: [17.70, 78.90],
+          southeast: [17.20, 79.60], southwest: [17.20, 78.90]
+        }
+      }
+    ];
+    
+    // 🎯 PRECISE BOUNDARY DETECTION
+    for (const district of districtBoundaries) {
+      const bounds = district.bounds;
+      
+      // 🎯 CHECK IF COORDINATES ARE WITHIN DISTRICT BOUNDARIES
+      if (lat >= bounds.south && lat <= bounds.north && lon >= bounds.west && lon <= bounds.east) {
+        console.log(`✅ PRECISE MATCH: ${district.name}`);
+        console.log(`📍 Coordinates ${lat}, ${lon} are within ${district.name} boundaries`);
+        console.log(`🎯 Bounds: N${bounds.north}, S${bounds.south}, E${bounds.east}, W${bounds.west}`);
+        
+        // 🎯 SPECIAL HANDLING FOR SURYAPET
+        if (district.name === 'Suryapet') {
+          console.log('🎯 SURYAPET DETECTED! User is in Suryapet district!');
+          console.log('🌾 Will show Suryapet-specific crops from Supabase database');
+        }
+        
+        return district.name;
+      }
+    }
+    
+    // 🎯 IF NO EXACT MATCH, FIND CLOSEST DISTRICT
+    console.log('⚠️ No exact boundary match, finding closest district...');
+    let closestDistrict = null;
+    let minDistance = Infinity;
+    
+    for (const district of districtBoundaries) {
+      const bounds = district.bounds;
+      const centerLat = (bounds.north + bounds.south) / 2;
+      const centerLon = (bounds.east + bounds.west) / 2;
+      
+      const distance = Math.sqrt(
+        Math.pow(lat - centerLat, 2) + Math.pow(lon - centerLon, 2)
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestDistrict = district.name;
+      }
+    }
+    
+    console.log(`🎯 CLOSEST DISTRICT: ${closestDistrict} (${(minDistance * 111).toFixed(2)}km away)`);
+    
+    // 🎯 SPECIAL DEBUGGING FOR SURYAPET
+    if (closestDistrict === 'Suryapet') {
+      console.log('🎯 SURYAPET IS CLOSEST! User is near Suryapet district!');
+      console.log('🌾 Will show Suryapet-specific crops from Supabase database');
+    }
+    
+    return closestDistrict;
+  };
+
+  // 🎯 OFFICIAL TELANGANA CITY TO DISTRICT MAPPING (33 DISTRICTS ONLY)
+  const mapCityToTelanganaDistrict = (city: string) => {
+    if (!city) return 'Hyderabad';
+    
+    // 🎯 OFFICIAL 33 TELANGANA DISTRICTS ONLY
+    const telanganaDistricts = [
+      'Hyderabad', 'Rangareddy', 'Medchal Malkajgiri', 'Sangareddy', 'Warangal', 
+      'Hanumakonda', 'Nizamabad', 'Karimnagar', 'Khammam', 'Adilabad', 
+      'Mahabubnagar', 'Nalgonda', 'Jagtial', 'Jayashankar Bhupalpally', 'Jangaon', 
+      'Jogulamba Gadwal', 'Kamareddy', 'Kumuram Bheem', 'Mahabubabad', 'Mancherial', 
+      'Medak', 'Mulugu', 'Nagarkurnool', 'Narayanpet', 'Nirmal', 'Peddapalli', 
+      'Rajanna Sircilla', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 
+      'Yadadri Bhuvanagiri', 'Bhadradri Kothagudem'
+    ];
+    
+    // 🎯 CLEAN CITY TO DISTRICT MAPPING (NO DUPLICATES)
+    const cityToDistrictMap: Record<string, string> = {
+      // Hyderabad District
+      'hyderabad': 'Hyderabad', 'secunderabad': 'Hyderabad', 'cyberabad': 'Hyderabad',
+      'hitech city': 'Hyderabad', 'gachibowli': 'Hyderabad', 'madhapur': 'Hyderabad',
+      'banjara hills': 'Hyderabad', 'jubilee hills': 'Hyderabad', 'lal darwaza': 'Hyderabad',
+      'charminar': 'Hyderabad', 'golconda': 'Hyderabad', 'abids': 'Hyderabad', 'panjagutta': 'Hyderabad',
+      
+      // Medchal Malkajgiri District
+      'kukatpally': 'Medchal Malkajgiri', 'balanagar': 'Medchal Malkajgiri',
+      'quthbullapur': 'Medchal Malkajgiri', 'alwal': 'Medchal Malkajgiri',
+      'dilsukhnagar': 'Medchal Malkajgiri', 'medchal': 'Medchal Malkajgiri',
+      'medchal malkajgiri': 'Medchal Malkajgiri', 'malkajgiri': 'Medchal Malkajgiri',
+      'kapra': 'Medchal Malkajgiri', 'lb nagar': 'Medchal Malkajgiri', 'uppal': 'Medchal Malkajgiri',
+      
+      // Rangareddy District
+      'rangareddy': 'Rangareddy', 'shamshabad': 'Rangareddy', 'chevella': 'Rangareddy',
+      'shabad': 'Rangareddy', 'moinabad': 'Rangareddy', 'serilingampally': 'Rangareddy',
+      'rajendranagar': 'Rangareddy',
+      
+      // Sangareddy District
+      'sangareddy': 'Sangareddy', 'sadasivpet': 'Sangareddy', 'zahirabad': 'Sangareddy',
+      'narayankhed': 'Sangareddy', 'isnapur': 'Sangareddy', 'patancheru': 'Sangareddy', 'bhel': 'Sangareddy',
+      
+      // Warangal District
+      'warangal': 'Warangal', 'warangal rural': 'Warangal', 'warangal urban': 'Warangal',
+      
+      // Hanumakonda District
+      'hanumakonda': 'Hanumakonda', 'hanamkonda': 'Hanumakonda', 'kazipet': 'Hanumakonda',
+      
+      // Nizamabad District
+      'nizamabad': 'Nizamabad', 'bodhan': 'Nizamabad', 'armoor': 'Nizamabad', 'bheemgal': 'Nizamabad',
+      
+      // Kamareddy District
+      'kamareddy': 'Kamareddy', 'yellareddy': 'Kamareddy', 'domakonda': 'Kamareddy',
+      'madnur': 'Kamareddy', 'bichkunda': 'Kamareddy',
+      
+      // Karimnagar District
+      'karimnagar': 'Karimnagar', 'dharmapuri': 'Karimnagar',
+      
+      // Jagtial District
+      'jagtial': 'Jagtial', 'metpalli': 'Jagtial', 'korutla': 'Jagtial', 'dharmapuri': 'Jagtial',
+      
+      // Rajanna Sircilla District
+      'sircilla': 'Rajanna Sircilla', 'ellanthakunta': 'Rajanna Sircilla', 'vemulawada': 'Rajanna Sircilla',
+      
+      // Peddapalli District
+      'peddapalli': 'Peddapalli', 'manthani': 'Peddapalli', 'ramagundam': 'Peddapalli',
+      'odela': 'Peddapalli', 'julurupadu': 'Peddapalli',
+      
+      // Jayashankar Bhupalpally District
+      'jayashankar bhupalpally': 'Jayashankar Bhupalpally', 'bhupalpally': 'Jayashankar Bhupalpally',
+      'mulugu': 'Mulugu', 'eturnagaram': 'Mulugu', 'tadvai': 'Mulugu',
+      
+      // Mulugu District
+      'mulugu': 'Mulugu', 'eturnagaram': 'Mulugu', 'tadvai': 'Mulugu',
+      
+      // Khammam District
+      'khammam': 'Khammam', 'madhira': 'Khammam', 'sathupally': 'Khammam',
+      'wyra': 'Khammam', 'kallur': 'Khammam', 'enkoor': 'Khammam',
+      
+      // Bhadradri Kothagudem District
+      'kothagudem': 'Bhadradri Kothagudem', 'palwancha': 'Bhadradri Kothagudem',
+      'bhadrachalam': 'Bhadradri Kothagudem', 'yellandu': 'Bhadradri Kothagudem',
+      'manuguru': 'Bhadradri Kothagudem', 'bhadradri kothagudem': 'Bhadradri Kothagudem',
+      
+      // Adilabad District
+      'adilabad': 'Adilabad', 'nirmal': 'Nirmal', 'mancherial': 'Mancherial',
+      'bellampalli': 'Mancherial', 'mandamarri': 'Mancherial',
+      
+      // Kumuram Bheem District
+      'asifabad': 'Kumuram Bheem', 'kagaznagar': 'Kumuram Bheem', 'sirpur': 'Kumuram Bheem',
+      'kumuram bheem': 'Kumuram Bheem',
+      
+      // Nirmal District
+      'nirmal': 'Nirmal', 'dichpally': 'Nirmal', 'khanapur': 'Nirmal', 'laxmanchanda': 'Nirmal',
+      
+      // Mancherial District
+      'mancherial': 'Mancherial', 'bellampalli': 'Mancherial', 'mandamarri': 'Mancherial',
+      'chennur': 'Mancherial', 'luxettipet': 'Mancherial',
+      
+      // Mahabubnagar District
+      'mahabubnagar': 'Mahabubnagar',
+      
+      // Nagarkurnool District
+      'nagar kurnool': 'Nagarkurnool', 'achampet': 'Nagarkurnool', 'kalwakurthy': 'Nagarkurnool',
+      'kollapur': 'Nagarkurnool', 'amrabad': 'Nagarkurnool',
+      
+      // Wanaparthy District
+      'wanaparthy': 'Wanaparthy', 'ghanpur': 'Wanaparthy', 'atmakur': 'Wanaparthy', 'pangal': 'Wanaparthy',
+      
+      // Jogulamba Gadwal District
+      'gadwal': 'Jogulamba Gadwal', 'alampur': 'Jogulamba Gadwal', 'jogulamba gadwal': 'Jogulamba Gadwal',
+      'ija': 'Jogulamba Gadwal',
+      
+      // Narayanpet District
+      'narayanpet': 'Narayanpet', 'kodangal': 'Narayanpet', 'makthal': 'Narayanpet', 'dhanwada': 'Narayanpet',
+      
+      // Nalgonda District
+      'nalgonda': 'Nalgonda', 'miryalaguda': 'Nalgonda', 'suryapet': 'Suryapet',
+      'kodad': 'Suryapet', 'huzurnagar': 'Suryapet', 'mothkur': 'Nalgonda',
+      'chityal': 'Nalgonda', 'narketpally': 'Nalgonda',
+      
+      // Yadadri Bhuvanagiri District
+      'bhongir': 'Yadadri Bhuvanagiri', 'choutuppal': 'Yadadri Bhuvanagiri', 'bibinagar': 'Yadadri Bhuvanagiri',
+      'yadadri bhuvanagiri': 'Yadadri Bhuvanagiri', 'yadadri': 'Yadadri Bhuvanagiri',
+      'alair': 'Yadadri Bhuvanagiri', 'bommalaramaram': 'Yadadri Bhuvanagiri',
+      
+      // Jangaon District
+      'jangaon': 'Jangaon', 'station ghanpur': 'Jangaon', 'jangoan': 'Jangaon',
+      
+      // Siddipet District
+      'siddipet': 'Siddipet', 'gajwel': 'Siddipet', 'dubbak': 'Siddipet',
+      'husnabad': 'Siddipet', 'chinnakodur': 'Siddipet',
+      
+      // Suryapet District
+      'suryapet': 'Suryapet', 'kodad': 'Suryapet', 'huzurnagar': 'Suryapet',
+      'mothkur': 'Suryapet', 'nuthankal': 'Suryapet', 'chivvemla': 'Suryapet',
+      
+      // Vikarabad District
+      'vikarabad': 'Vikarabad', 'tandur': 'Vikarabad', 'pargi': 'Vikarabad', 'doulthabad': 'Vikarabad',
+      
+      // Medak District
+      'medak': 'Medak',
+      
+      // Mahabubabad District
+      'mahabubabad': 'Mahabubabad', 'thorrur': 'Mahabubabad', 'maripeda': 'Mahabubabad', 'gudur': 'Mahabubabad'
+    };
+    
+    // 🎯 NORMALIZE CITY NAME
+    const normalizedCity = city.toLowerCase().trim();
+    
+    // 🎯 EXACT MATCH FIRST
+    if (cityToDistrictMap[normalizedCity]) {
+      const district = cityToDistrictMap[normalizedCity];
+      console.log(`✅ Exact match: ${city} → ${district}`);
+      return district;
+    }
+    
+    // 🎯 PARTIAL MATCH (CONTAINS)
+    for (const [mappedCity, district] of Object.entries(cityToDistrictMap)) {
+      if (normalizedCity.includes(mappedCity) || mappedCity.includes(normalizedCity)) {
+        console.log(`🎯 Partial match: ${city} → ${district}`);
+        return district;
+      }
+    }
+    
+    // 🎯 DEFAULT TO HYDERABAD IF NO MATCH (BUT LOG WARNING)
+    console.log(`⚠️ No match found for "${city}", defaulting to Hyderabad`);
+    console.log(`📍 Available districts: ${telanganaDistricts.join(', ')}`);
+    return 'Hyderabad';
+  };
+
+  // 🎯 TELANGANA DISTRICT VALIDATION FUNCTION
+  const validateTelanganaDistrict = (district: string): boolean => {
+    const telanganaDistricts = [
+      'Hyderabad', 'Rangareddy', 'Medchal Malkajgiri', 'Sangareddy', 'Warangal', 
+      'Hanumakonda', 'Nizamabad', 'Karimnagar', 'Khammam', 'Adilabad', 
+      'Mahabubnagar', 'Nalgonda', 'Jagtial', 'Jayashankar Bhupalpally', 'Jangaon', 
+      'Jogulamba Gadwal', 'Kamareddy', 'Kumuram Bheem', 'Mahabubabad', 'Mancherial', 
+      'Medak', 'Mulugu', 'Nagarkurnool', 'Narayanpet', 'Nirmal', 'Peddapalli', 
+      'Rajanna Sircilla', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 
+      'Yadadri Bhuvanagiri', 'Bhadradri Kothagudem'
+    ];
+    
+    const isValid = telanganaDistricts.includes(district);
+    console.log(`🔍 District validation: "${district}" → ${isValid ? 'VALID' : 'INVALID'}`);
+    
+    if (!isValid) {
+      console.log(`❌ Invalid district "${district}". Must be one of 33 Telangana districts.`);
+      console.log(`📍 Valid districts: ${telanganaDistricts.join(', ')}`);
+    }
+    
+    return isValid;
+  };
+
+  // 🔹 LOCATION REFRESH FUNCTION
+  const refreshLocation = async () => {
+    console.log('🔄 Manual location refresh triggered...');
+    setLoading(true);
+    
+    // 🎯 CLEAR SAVED LOCATION
+    localStorage.removeItem('userDistrict');
+    localStorage.removeItem('userCoordinates');
+    localStorage.removeItem('locationMethod');
+    localStorage.removeItem('locationTimestamp');
+    localStorage.removeItem('locationAccuracy');
+    
+    // 🎯 RESET USER LOCATION
+    setUserLocation(null);
+    
+    // 🎯 RE-INITIALIZE LOCATION
+    const initializeLocation = async () => {
+      try {
+        // 🎯 STEP 1: TRY GPS FIRST
+        if (navigator.geolocation) {
+          console.log('🛰️ Manual GPS location detection...');
+          
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              const timeoutId = setTimeout(() => reject(new Error('GPS timeout')), 10000);
+              
+              navigator.geolocation.getCurrentPosition(
+                function (position) {
+                  clearTimeout(timeoutId);
+                  console.log("📍 MANUAL GPS SUCCESS - Latitude:", position.coords.latitude);
+                  console.log("📍 MANUAL GPS SUCCESS - Longitude:", position.coords.longitude);
+                  console.log("📍 MANUAL GPS ACCURACY:", position.coords.accuracy, "meters");
+                  resolve(position);
+                },
+                function (error) {
+                  clearTimeout(timeoutId);
+                  console.error("❌ MANUAL GPS Error code:", error.code);
+                  console.error("❌ MANUAL GPS Error message:", error.message);
+                  switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                      console.error("❌ User denied the request for Geolocation.");
+                      break;
+                    case error.POSITION_UNAVAILABLE:
+                      console.error("❌ Location information is unavailable.");
+                      break;
+                    case error.TIMEOUT:
+                      console.error("❌ The request to get user location timed out.");
+                      break;
+                    case error.UNKNOWN_ERROR:
+                      console.error("❌ An unknown error occurred.");
+                      break;
+                  }
+                  reject(error);
+                },
+                {
+                  enableHighAccuracy: true,
+                  timeout: 10000,
+                  maximumAge: 0
+                }
+              );
+            });
+            
+            console.log('📍 Manual GPS SUCCESS:', position.coords.latitude, position.coords.longitude);
+            
+            const district = await getDistrictFromCoordinates(position.coords.latitude, position.coords.longitude);
+            
+            if (district && validateTelanganaDistrict(district)) {
+              console.log('🎯 VALID GPS District detected:', district);
+              setUserLocation({
+                district: district,
+                state: 'Telangana'
+              });
+              
+              localStorage.setItem('userDistrict', district);
+              localStorage.setItem('userCoordinates', `${position.coords.latitude},${position.coords.longitude}`);
+              localStorage.setItem('locationMethod', 'GPS-MANUAL');
+              localStorage.setItem('locationTimestamp', new Date().toISOString());
+              localStorage.setItem('locationAccuracy', position.coords.accuracy.toString());
+              
+              setLoading(false);
+              return;
+            } else if (district) {
+              console.log(`❌ GPS district "${district}" is not a valid Telangana district`);
+            }
+          } catch (gpsError) {
+            console.log('❌ Manual GPS failed:', gpsError.message);
+          }
+        }
+        
+        // 🎯 STEP 2: FALLBACK TO IP LOCATION
+        console.log('🌐 Manual IP location fallback...');
+        await getLocationFromIP();
+        
+      } catch (error) {
+        console.error('❌ Manual location refresh failed:', error);
+        await fallbackToDefaultLocation();
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    await initializeLocation();
+  };
+
+  // 🔹 DEBUG: MANUAL LOCATION OVERRIDE (FOR TESTING)
+  const setManualLocation = (district: string) => {
+    console.log('🔧 Manual location override:', district);
+    setUserLocation({
+      district: district,
+      state: 'Telangana'
+    });
+    
+    localStorage.setItem('userDistrict', district);
+    localStorage.setItem('locationMethod', 'MANUAL-OVERRIDE');
+    localStorage.setItem('locationTimestamp', new Date().toISOString());
+    localStorage.removeItem('userCoordinates');
+    localStorage.removeItem('locationAccuracy');
+    
+    console.log('✅ Manual location set:', district);
+    setLoading(false);
+  };
+
+  // 🔹 GET FILTERED CROP COUNTS (ACCURATE COUNTS)
+  const getFilteredCropCount = () => {
+    return filteredAndSortedCrops.length;
+  };
+
+  // 🔹 GET CURRENT CROPS
+  const getCurrentCrops = () => {
+    switch (activeTab) {
+      case 'short': return shortTermCrops;
+      case 'medium': return mediumTermCrops;
+      case 'long': return longTermCrops;
+      default: return shortTermCrops;
+    }
+  };
+
+  // 🔹 FILTER AND SORT CROPS (NO DISTRICT FILTERING NEEDED - ALREADY DONE IN getCropsByCategory)
+  const filteredAndSortedCrops = useMemo(() => {
+    let crops = getCurrentCrops();
+
+    // 🎯 NOTE: District filtering is now done in getCropsByCategory function
+    // No need to filter again here since crops are already district-specific
+    console.log(`📊 Using pre-filtered crops: ${crops.length} crops for ${userLocation?.district || 'default'}`);
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      crops = crops.filter(crop =>
+        crop.name.toLowerCase().includes(searchLower) ||
+        crop.cropType.toLowerCase().includes(searchLower) ||
+        crop.district.toLowerCase().includes(searchLower)
+      );
+      console.log(`🔍 Search filtering result: ${crops.length} crops for "${searchTerm}"`);
+    }
+
+    if (waterFilter && waterFilter !== 'all') {
+      crops = crops.filter(crop => crop.waterNeeds?.toLowerCase() === waterFilter.toLowerCase());
+    }
+
+    if (demandFilter && demandFilter !== 'all') {
+      crops = crops.filter(crop => crop.demand?.toLowerCase() === demandFilter.toLowerCase());
+    }
+
+    // Sort crops
+    crops.sort((a, b) => {
+      let comparison = 0;
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'profit':
+          aValue = a.profitPerAcre || 0;
+          bValue = b.profitPerAcre || 0;
+          break;
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'duration':
+          aValue = a.durationDays || 0;
+          bValue = b.durationDays || 0;
+          break;
+        default:
+          aValue = a.profitPerAcre || 0;
+          bValue = b.profitPerAcre || 0;
+      }
+
+      if (typeof aValue === 'string') {
+        return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+    });
+
+    return crops;
+  }, [activeTab, searchTerm, sortBy, sortOrder, waterFilter, demandFilter, shortTermCrops, mediumTermCrops, longTermCrops, userLocation]);
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
+  return (
+    <section className="section-container bg-gradient-to-br from-background to-muted/30 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* 🔹 HEADER */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            🌱 District-Based Crop Explorer
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Discover profitable farming opportunities tailored to your location with real-time district detection and precise crop recommendations.
+          </p>
+        </div>
+
+        {/* 🔹 LOCATION STATUS - CENTERED */}
+        <div className="mb-8 flex justify-center">
+          {userLocation?.district ? (
+            <div className="text-center p-6 bg-green-50 border border-green-200 rounded-lg max-w-md">
+              <div className="flex items-center justify-center mb-3">
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2"></div>
+                ) : (
+                  <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                )}
+                <div>
+                  <div className="text-lg font-bold text-gray-900">
+                    📍 {userLocation.district}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Real-time location detected
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <h3 className="font-semibold text-blue-800">📍 Detecting your location...</h3>
+              <p className="text-blue-600 text-sm">Getting real-time GPS coordinates</p>
+              <div className="mt-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Please allow location access for accurate detection</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 🔹 DISTRICT SUMMARY */}
+        {userLocation?.district && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardContent className="p-4 text-center">
+                <h3 className="font-semibold text-green-800">🌱 Short-Term</h3>
+                <p className="text-2xl font-bold text-green-600">{activeTab === 'short' ? getFilteredCropCount() : shortTermCrops.length}</p>
+                <p className="text-sm text-green-600">crops available</p>
+                <p className="text-xs text-muted-foreground">45-120 days</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <h3 className="font-semibold text-blue-800">🌿 Medium-Term</h3>
+                <p className="text-2xl font-bold text-blue-600">{activeTab === 'medium' ? getFilteredCropCount() : mediumTermCrops.length}</p>
+                <p className="text-sm text-blue-600">crops available</p>
+                <p className="text-xs text-muted-foreground">120-365 days</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardContent className="p-4 text-center">
+                <h3 className="font-semibold text-purple-800">🌳 Long-Term</h3>
+                <p className="text-2xl font-bold text-purple-600">{activeTab === 'long' ? getFilteredCropCount() : longTermCrops.length}</p>
+                <p className="text-sm text-purple-600">crops available</p>
+                <p className="text-xs text-muted-foreground">365+ days</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* 🔹 FILTERS */}
+        {userLocation?.district && (
+          <div className="mb-8 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search crops by name or type..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <Select value={waterFilter} onValueChange={setWaterFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Water Needs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Water Needs</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="moderate">Moderate</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="profit">Yield Estimate</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="duration">Duration</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" size="icon" onClick={toggleSortOrder} className="w-10 h-10">
+                <ArrowUpDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 🔹 CROPS DISPLAY */}
+        {userLocation?.district && (
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="short" className="flex items-center gap-2">
+                🌱 Short-Term
+                <Badge variant="secondary">{activeTab === 'short' ? getFilteredCropCount() : shortTermCrops.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="medium" className="flex items-center gap-2">
+                🌿 Medium-Term
+                <Badge variant="secondary">{activeTab === 'medium' ? getFilteredCropCount() : mediumTermCrops.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="long" className="flex items-center gap-2">
+                🌳 Long-Term
+                <Badge variant="secondary">{activeTab === 'long' ? getFilteredCropCount() : longTermCrops.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="short" className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-green-800 mb-2">🌱 Short-Term Crops</h2>
+                <p className="text-muted-foreground">Quick returns (45-120 days)</p>
+                <p className="text-sm text-green-600 mt-2">Showing {getFilteredCropCount()} crops</p>
+              </div>
+              {filteredAndSortedCrops.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedCrops.map((crop) => (
+                    <Card 
+                      key={crop.id} 
+                      className="cursor-pointer hover-card group transition-all duration-300 hover:shadow-xl border-border/50"
+                      onClick={() => openModal(crop)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                          <img 
+                            src={crop.image} 
+                            alt={crop.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                {crop.name}
+                              </h3>
+                              <p className="text-sm font-bold text-green-600 mt-1 bg-green-50 px-2 py-1 rounded-md inline-block">
+                                📍 {crop.district || 'Telangana'}
+                              </p>
+                            </div>
+                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                              {crop.duration}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {crop.description}
+                          </p>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              💰 ₹{(crop.profitPerAcre/1000).toFixed(0)}K/acre
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              💧 {crop.waterNeeds}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              📈 {crop.demand}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-semibold">No crops found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="medium" className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-blue-800 mb-2">🌿 Medium-Term Crops</h2>
+                <p className="text-muted-foreground">Balanced returns (120-365 days)</p>
+                <p className="text-sm text-blue-600 mt-2">Showing {getFilteredCropCount()} crops</p>
+              </div>
+              {filteredAndSortedCrops.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedCrops.map((crop) => (
+                    <Card 
+                      key={crop.id} 
+                      className="cursor-pointer hover-card group transition-all duration-300 hover:shadow-xl border-border/50"
+                      onClick={() => openModal(crop)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                          <img 
+                            src={crop.image} 
+                            alt={crop.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                {crop.name}
+                              </h3>
+                              <p className="text-sm font-bold text-green-600 mt-1 bg-green-50 px-2 py-1 rounded-md inline-block">
+                                📍 {crop.district || 'Telangana'}
+                              </p>
+                            </div>
+                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                              {crop.duration}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {crop.description}
+                          </p>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              💰 ₹{(crop.profitPerAcre/1000).toFixed(0)}K/acre
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              💧 {crop.waterNeeds}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              📈 {crop.demand}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-semibold">No crops found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="long" className="space-y-6">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-purple-800 mb-2">🌳 Long-Term Crops</h2>
+                <p className="text-muted-foreground">High-value crops (365+ days)</p>
+                <p className="text-sm text-purple-600 mt-2">Showing {getFilteredCropCount()} crops</p>
+              </div>
+              {filteredAndSortedCrops.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredAndSortedCrops.map((crop) => (
+                    <Card 
+                      key={crop.id} 
+                      className="cursor-pointer hover-card group transition-all duration-300 hover:shadow-xl border-border/50"
+                      onClick={() => openModal(crop)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                          <img 
+                            src={crop.image} 
+                            alt={crop.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                {crop.name}
+                              </h3>
+                              <p className="text-sm font-bold text-green-600 mt-1 bg-green-50 px-2 py-1 rounded-md inline-block">
+                                📍 {crop.district || 'Telangana'}
+                              </p>
+                            </div>
+                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                              {crop.duration}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {crop.description}
+                          </p>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              💰 ₹{(crop.profitPerAcre/1000).toFixed(0)}K/acre
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              💧 {crop.waterNeeds}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              📈 {crop.demand}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-semibold">No crops found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* 🔹 CROP DETAIL MODAL - EXACT UI FROM CROPS PAGE */}
+        {selectedCrop && (
+          <CropDetailModal
+            crop={selectedCrop}
+            isOpen={isModalOpen}
+            onClose={closeModal}
+          />
+        )}
+      </div>
+    </section>
+  );
+};
+
+export default ExploreCropsUltraProFinal;

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FarmSphere Icon Generator</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #16a34a, #10b981); 
+            color: white; 
+            margin: 0; 
+            padding: 40px; 
+            text-align: center; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .icon-container { 
+            background: white; 
+            border-radius: 20%; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            margin-bottom: 30px; 
+        }
+        .icon { 
+            font-size: 120px; 
+            line-height: 1; 
+            margin-bottom: 20px; 
+        }
+        .download-btn { 
+            background: white; 
+            color: #16a34a; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            margin: 10px; 
+            text-decoration: none; 
+            display: inline-block; 
+        }
+        .size-info { 
+            font-size: 14px; 
+            opacity: 0.8; 
+            margin-top: 20px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="icon-container">
+        <div class="icon">🌾</div>
+        <div>FarmSphere</div>
+    </div>
+    
+    <div>
+        <h2>Generating App Icons...</h2>
+        <div class="size-info">Creating icons in all required sizes for PWA installation</div>
+        
+        <script>
+            // Generate icons using Canvas API
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            const colors = {
+                primary: '#16a34a',
+                secondary: '#10b981',
+                text: '#ffffff',
+                shadow: 'rgba(0,0,0,0.1)'
+            };
+            
+            sizes.forEach(size => {
+                setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Background
+                    ctx.fillStyle = colors.primary;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Add subtle gradient
+                    const gradient = ctx.createLinearGradient(0, 0, size, size);
+                    gradient.addColorStop(0, colors.primary);
+                    gradient.addColorStop(1, colors.secondary);
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Add icon symbol
+                    ctx.fillStyle = colors.text;
+                    ctx.font = `bold ${size * 0.4}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌾', size/2, size/2);
+                    
+                    // Add shadow effect
+                    ctx.shadowColor = colors.shadow;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 4;
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText('🌾', size/2, size/2);
+                    
+                    // Download
+                    canvas.toBlob(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `icon-${size}x${size}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }, 'image/png');
+                }, size * 100);
+            });
+            
+            // Auto-download all icons after 3 seconds
+            setTimeout(() => {
+                window.location.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent('Icons generated! You can now use these in your PWA.');
+            }, sizes.length * 100 + 2000);
+        </script>
+    </div>
+</body>
+</html>

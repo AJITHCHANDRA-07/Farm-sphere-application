@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Zap, Users, TrendingUp, Rocket, X } from "lucide-react";
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
 
 interface FABItem {
   id: string;
@@ -42,6 +44,8 @@ const fabItems: FABItem[] = [
 ];
 
 const FloatingActionButtons = () => {
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
   const [activePopup, setActivePopup] = useState<string | null>(null);
 
   return (
@@ -54,11 +58,11 @@ const FloatingActionButtons = () => {
             onClick={() => setActivePopup(item.id)}
             className="professional-card w-12 h-12 rounded-full flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-110 group shadow-lg"
             style={{ animationDelay: `${index * 0.1}s` }}
-            title={item.label}
+            title={t(`floatingButtons.${item.id}.title`)}
           >
             <item.icon className="h-5 w-5" />
             <span className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-foreground text-background px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-              {item.label}
+              {t(`floatingButtons.${item.id}.title`)}
             </span>
           </button>
         ))}
@@ -78,7 +82,7 @@ const FloatingActionButtons = () => {
                     return (
                       <>
                         <item.icon className={`h-8 w-8 ${item.color}`} />
-                        <h3 className="text-2xl font-bold text-foreground">{item.label}</h3>
+                        <h3 className="text-2xl font-bold text-foreground">{t(`floatingButtons.${activePopup}.title`)}</h3>
                       </>
                     );
                   })()}
@@ -96,19 +100,19 @@ const FloatingActionButtons = () => {
               {/* Content */}
               <div className="space-y-4">
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  {fabItems.find(item => item.id === activePopup)?.content}
+                  {t(`floatingButtons.${activePopup}.content`)}
                 </p>
 
                 {/* Dynamic Content Based on Type */}
                 {activePopup === 'schemes' && (
                   <div className="space-y-4">
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">🔍 Smart Search</h4>
-                      <p className="text-sm text-muted-foreground">Find schemes by category, loan amount, or eligibility criteria</p>
+                      <h4 className="font-semibold text-foreground mb-2">🔍 {t('floatingButtons.quickSchemes.smartSearch')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.quickSchemes.smartSearchDesc')}</p>
                     </div>
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">⚡ Instant Check</h4>
-                      <p className="text-sm text-muted-foreground">AI-powered eligibility verification in seconds</p>
+                      <h4 className="font-semibold text-foreground mb-2">⚡ {t('floatingButtons.quickSchemes.instantCheck')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.quickSchemes.instantCheckDesc')}</p>
                     </div>
                   </div>
                 )}
@@ -116,12 +120,12 @@ const FloatingActionButtons = () => {
                 {activePopup === 'networking' && (
                   <div className="space-y-4">
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">👥 Farmer Network</h4>
-                      <p className="text-sm text-muted-foreground">Connect with 10,000+ verified farmers across India</p>
+                      <h4 className="font-semibold text-foreground mb-2">👥 {t('floatingButtons.networkingHub.farmerNetwork')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.networkingHub.farmerNetworkDesc')}</p>
                     </div>
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">💼 Investor Portal</h4>
-                      <p className="text-sm text-muted-foreground">Access to pre-verified agricultural investors</p>
+                      <h4 className="font-semibold text-foreground mb-2">💼 {t('floatingButtons.networkingHub.investorPortal')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.networkingHub.investorPortalDesc')}</p>
                     </div>
                   </div>
                 )}
@@ -130,12 +134,12 @@ const FloatingActionButtons = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="feature-card p-4 text-center">
-                        <div className="text-lg font-bold text-primary">₹2,450</div>
-                        <div className="text-sm text-muted-foreground">Wheat/Quintal</div>
+                        <div className="text-lg font-bold text-primary">{t('floatingButtons.marketTrends.wheatPrice')}</div>
+                        <div className="text-sm text-muted-foreground">{t('floatingButtons.marketTrends.wheatUnit')}</div>
                       </div>
                       <div className="feature-card p-4 text-center">
-                        <div className="text-lg font-bold text-green-600">+12%</div>
-                        <div className="text-sm text-muted-foreground">This Month</div>
+                        <div className="text-lg font-bold text-green-600">{t('floatingButtons.marketTrends.priceChange')}</div>
+                        <div className="text-sm text-muted-foreground">{t('floatingButtons.marketTrends.changePeriod')}</div>
                       </div>
                     </div>
                   </div>
@@ -144,12 +148,12 @@ const FloatingActionButtons = () => {
                 {activePopup === 'vision' && (
                   <div className="space-y-4">
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">🎯 Mission</h4>
-                      <p className="text-sm text-muted-foreground">Empower 1M+ farmers with technology and data-driven insights</p>
+                      <h4 className="font-semibold text-foreground mb-2">🎯 {t('floatingButtons.ourVision.mission')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.ourVision.missionDesc')}</p>
                     </div>
                     <div className="feature-card p-4">
-                      <h4 className="font-semibold text-foreground mb-2">🚀 Vision 2030</h4>
-                      <p className="text-sm text-muted-foreground">Make India's agriculture the most profitable and sustainable globally</p>
+                      <h4 className="font-semibold text-foreground mb-2">🚀 {t('floatingButtons.ourVision.vision2030')}</h4>
+                      <p className="text-sm text-muted-foreground">{t('floatingButtons.ourVision.vision2030Desc')}</p>
                     </div>
                   </div>
                 )}
@@ -158,10 +162,10 @@ const FloatingActionButtons = () => {
               {/* Action Button */}
               <div className="pt-4">
                 <Button variant="professional" className="w-full">
-                  {activePopup === 'schemes' && 'Explore Schemes'}
-                  {activePopup === 'networking' && 'Join Network'}
-                  {activePopup === 'market' && 'View Market Data'}
-                  {activePopup === 'vision' && 'Learn More'}
+                  {activePopup === 'schemes' && t('floatingButtons.quickSchemes.actionButton')}
+                  {activePopup === 'networking' && t('floatingButtons.networkingHub.actionButton')}
+                  {activePopup === 'market' && t('floatingButtons.marketTrends.actionButton')}
+                  {activePopup === 'vision' && t('floatingButtons.ourVision.actionButton')}
                 </Button>
               </div>
             </div>
