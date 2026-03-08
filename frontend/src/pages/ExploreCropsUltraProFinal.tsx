@@ -148,71 +148,73 @@ const ExploreCropsUltraProFinal = () => {
     setLocationError('');
 
     if (!navigator.geolocation) {
-      console.error('❌ Geolocation not supported by this browser');
-      setDetectedDistrict('Hyderabad');
-      setSelectedDistrict('Hyderabad');
-      setLocationLoading(false);
+      console.log('Geolocation not supported');
       return;
     }
-    
-    console.log('🌐 Browser supports geolocation:', navigator.geolocation);
-    console.log('🔍 Current protocol:', window.location.protocol);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log('📍 GPS coordinates received:', { latitude, longitude });
-
-        setUserLocation({ lat: latitude, lon: longitude });
-
+      
         try {
-          // 🌐 Call Nominatim — Free, No API Key needed
+          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+        
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { 'Accept-Language': 'en' } }
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&language=en&result_type=administrative_area_level_2` 
           );
-
+        
           const data = await response.json();
-          const addr = data.address;
-
-          console.log('🗺️ Nominatim full address:', addr);
-          console.log('state_district:', addr.state_district);
-          console.log('county:', addr.county);
-
-          // ✅ state_district FIRST — this is always the correct district level
-          const rawDistrict = addr.state_district || addr.county || addr.city_district || '';
-          console.log('📌 Raw district from Nominatim:', rawDistrict);
-
-          // ✅ Match to your exact TELANGANA_DISTRICTS list
-          const key = rawDistrict.toLowerCase().trim();
-          const matchedDistrict = DISTRICT_MAP[key] || rawDistrict || 'Hyderabad';
-
-          console.log('✅ Final matched district:', matchedDistrict);
-
-          setDetectedDistrict(matchedDistrict);
-          setSelectedDistrict(matchedDistrict);
-          setLocationLoading(false);
-
-          // ✅ Force short term to re-filter after district detected
-          if (activeTab === 'short') {
-            setActiveTab('medium');
-            setTimeout(() => setActiveTab('short'), 100);
+          console.log('Google Maps response:', data);
+        
+          if (data.status === 'OK' && data.results.length > 0) {
+            const components = data.results[0].address_components;
+          
+            // Find district
+            const districtComp = components.find(c =>
+              c.types.includes('administrative_area_level_2')
+            );
+          
+            const rawDistrict = districtComp?.long_name || '';
+            console.log('Raw district from Google:', rawDistrict);
+          
+            // Clean district name
+            const cleaned = rawDistrict
+              .replace(' District', '')
+              .replace(' district', '')
+              .trim();
+          
+            console.log('Cleaned district:', cleaned);
+          
+            // Match with DISTRICT_MAP
+            const matched = DISTRICT_MAP[cleaned] ||
+                            DISTRICT_MAP[rawDistrict] ||
+                            null;
+          
+            if (matched) {
+              setDetectedDistrict(matched);
+              console.log('✅ District matched:', matched);
+            } else {
+              // Try partial match
+              const allKeys = Object.keys(DISTRICT_MAP);
+              const partial = allKeys.find(k =>
+                cleaned.toLowerCase().includes(k.toLowerCase()) ||
+                  k.toLowerCase().includes(cleaned.toLowerCase())
+              );
+            
+              if (partial) {
+                setDetectedDistrict(DISTRICT_MAP[partial]);
+                console.log('✅ Partial match:', DISTRICT_MAP[partial]);
+              } else {
+                console.log('❌ No district match found for:', cleaned);
+              }
+            }
           }
-
-        } catch (fetchError) {
-          console.error('❌ Nominatim reverse geocoding failed:', fetchError);
-          // Fallback only if Nominatim call itself fails (network issue etc.)
-          setDetectedDistrict('Hyderabad');
-          setSelectedDistrict('Hyderabad');
-          setLocationLoading(false);
+        } catch (error) {
+          console.error('Google Maps API error:', error);
         }
       },
       (error) => {
-        // GPS permission denied or timeout
-        console.error('❌ Geolocation error:', error.message);
-        setLocationLoading(false);
-        setDetectedDistrict('Hyderabad');
-        setSelectedDistrict('Hyderabad');
+        console.error('GPS error:', error);
       },
       {
         enableHighAccuracy: true,
