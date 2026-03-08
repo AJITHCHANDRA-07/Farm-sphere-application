@@ -1,8 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../lib/translations';
+
+// Add custom styles for animations
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  @keyframes fadeInSlideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in-slide-down {
+    animation: fadeInSlideDown 0.8s ease-out;
+  }
+`;
+document.head.appendChild(styleSheet);
 
 const Login = () => {
+  const { currentLanguage } = useLanguage();
+  const { t } = useTranslation(currentLanguage);
   const navigate = useNavigate();
   const location = useLocation();
   const [phone, setPhone] = useState('');
@@ -225,6 +248,22 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
+
+        {/* Welcome Quote Banner */}
+        <div 
+          className="bg-gradient-to-r from-[#14532d] to-[#166534] rounded-2xl p-6 mb-6 text-center animate-fade-in-slide-down"
+          style={{
+            animation: 'fadeInSlideDown 0.8s ease-out',
+          }}
+        >
+          <div className="text-2xl mb-3">🌾</div>
+          <div 
+            className="text-white italic text-[15px] leading-[1.8] whitespace-pre-line"
+            style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+          >
+            {t('login.loginQuote')}
+          </div>
+        </div>
 
         {/* Header */}
         <div className="text-center">

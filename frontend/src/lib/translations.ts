@@ -162,8 +162,14 @@ export const translations = {
       mediumRisk: "Medium Risk",
       highRisk: "High Risk",
       highDemand: "High Demand",
-      mediumDemand: "Medium Demand",
-      lowDemand: "Low Demand"
+      hero: {
+        title: "🌾 INDIAN STATES AGRICULTURAL HUB",
+        subtitle: "Explore Major Crops • Export Opportunities • Market Insights"
+      },
+      stats: {
+        cropsCount: "84+ Crops",
+        exportData: "Export Data"
+      }
     },
     // Investments Page
     investments: {
@@ -277,7 +283,6 @@ export const translations = {
       browseSchemes: "Browse Schemes",
       governmentSupportDesc: "Access various government support programs and subsidies",
       quickSchemes: "Quick Schemes",
-      networkingHub: "Networking Hub",
       marketTrends: "Market Trends",
       ourVision: "Our Vision",
       farmSphereVision: "FarmSphere",
@@ -313,7 +318,6 @@ export const translations = {
       governmentScheme: "🏛️ Government Scheme",
       overview: "Overview",
       procedure: "Procedure",
-      contact: "Contact",
       governingMinistry: "Governing Ministry/Department",
       objective: "Objective",
       maxAmountSubsidy: "Max Amount/Subsidy",
@@ -434,17 +438,6 @@ export const translations = {
         suryapet: "Suryapet"
       }
     },
-    // States Page
-    states: {
-      hero: {
-        title: "🌾 INDIAN STATES AGRICULTURAL HUB",
-        subtitle: "Explore Major Crops • Export Opportunities • Market Insights"
-      },
-      stats: {
-        cropsCount: "84+ Crops",
-        exportData: "Export Data"
-      }
-    },
     // Explore Crops Page
     exploreCrops: {
       hero: {
@@ -553,20 +546,38 @@ export const translations = {
     // Floating Action Buttons (Home Page)
     floatingButtons: {
       schemes: {
-        title: "Government Schemes",
-        content: "🔍 Smart Search\nFind schemes by category, loan amount, or eligibility criteria\n\n⚡ Instant Check\nAI-powered eligibility verification in seconds",
-        actionButton: "Explore Schemes"
+        title: "Free Government Aid",
+        content: "Get ₹6,000/year directly in your bank via PM-KISAN\n\nApply for crop insurance — protect your harvest from floods & drought",
+        actionButton: "",
+        smartSearch: "",
+        smartSearchDesc: "",
+        instantCheck: "",
+        instantCheckDesc: ""
       },
       networking: {
-        title: "Farmer Network",
-        content: "👥 Farmer Network\nConnect with 10,000+ verified farmers across India\n\n💼 Investor Portal\nAccess to pre-verified agricultural investors",
-        actionButton: "Join Network"
+        title: "Grow Your Farm Business",
+        content: "Connect directly with buyers — sell crops at better prices, no middlemen\n\nFind investors ready to fund your farm expansion\n\nJoin 100+ verified farmers sharing tips & market prices",
+        actionButton: ""
+      },
+      market: {
+        title: "Market Trends",
+        content: "Real-time price updates, demand forecasts, and market intelligence powered by AI analytics\n\nTrack mandi prices daily — know when to sell for best rate",
+        actionButton: ""
       },
       vision: {
-        title: "Our Vision",
-        content: "🎯 Mission\nEmpower 1M+ farmers with technology and data-driven insights\n\n🚀 Vision 2030\nMake India's agriculture the most profitable and sustainable globally",
-        actionButton: "Learn More"
+        title: "Smart Farming Tools",
+        content: "AI tells you which crop gives maximum profit in your district this season\n\nGet real-time weather alerts before sowing or harvesting\n\nTrack mandi prices daily — know when to sell for best rate",
+        actionButton: ""
+      },
+      crops: {
+        title: "Your District. Your Crops.",
+        content: "See exactly which crops grow best in your district using GPS\n\nCompare water needs, cost & profit for 50+ crops\n\nGet step-by-step growing guide in your own language",
+        actionButton: ""
       }
+    },
+    // Login Page
+    login: {
+      loginQuote: "The farmer who once fed nation\nnow leads Tech-Agri Revolution.\nYour soil is your stock market.\nYour harvest is your profit empire.\nWelcome to World where your Fields print Profit. 🌾"
     }
   },
   
@@ -739,7 +750,15 @@ export const translations = {
       highRisk: "उच्च जोखिम",
       highDemand: "उच्च मांग",
       mediumDemand: "मध्यम मांग",
-      lowDemand: "कम मांग"
+      lowDemand: "कम मांग",
+      hero: {
+        title: "🌾 भारतीय राज्यों के कृषि केंद्र",
+        subtitle: "प्रमुख फसलें • निर्यात अवसर • बाजार अंतर्दृष्टि"
+      },
+      stats: {
+        cropsCount: "84+ फसलें",
+        exportData: "निर्यात डेटा"
+      }
     },
     // Investments Page
     investments: {
@@ -853,7 +872,6 @@ export const translations = {
       browseSchemes: "योजनाएं ब्राउज़ करें",
       governmentSupportDesc: "विभिन्न सरकारी समर्थन कार्यक्रमों और सब्सिडी तक पहुंचें",
       quickSchemes: "त्वरित योजनाएं",
-      networkingHub: "नेटवर्किंग हब",
       marketTrends: "बाजार रुझान",
       ourVision: "हमारा दृष्टिकोण",
       farmSphereVision: "फार्मस्फियर",
@@ -889,7 +907,6 @@ export const translations = {
       governmentScheme: "🏛️ सरकारी योजना",
       overview: "अवलोकन",
       procedure: "प्रक्रिया",
-      contact: "संपर्क",
       governingMinistry: "शासक मंत्रालय/विभाग",
       objective: "उद्देश्य",
       maxAmountSubsidy: "अधिकतम राशि/सब्सिडी",
@@ -1010,17 +1027,6 @@ export const translations = {
         suryapet: "सूर्यापेट"
       }
     },
-    // States Page
-    states: {
-      hero: {
-        title: "🌾 भारतीय राज्यों के कृषि केंद्र",
-        subtitle: "प्रमुख फसलें • निर्यात अवसर • बाजार अंतर्दृष्टि"
-      },
-      stats: {
-        cropsCount: "84+ फसलें",
-        exportData: "निर्यात डेटा"
-      }
-    },
     // Explore Crops Page
     exploreCrops: {
       hero: {
@@ -1129,20 +1135,38 @@ export const translations = {
     // Floating Action Buttons (Home Page)
     floatingButtons: {
       schemes: {
-        title: "सरकारी योजनाएं",
-        content: "🔍 स्मार्ट खोज\nश्रेणी, ऋण राशि, या पात्रता मानदंड के अनुसार योजनाएं खोजें\n\n⚡ तत्काल जांच\nसेकंड में AI-संचालित पात्रता सत्यापन",
-        actionButton: "योजनाएं अन्वेषण करें"
+        title: "मुफ़्त सरकारी सहायता",
+        content: "PM-KISAN से ₹6,000/साल सीधे बैंक में पाएं\n\nफसल बीमा करें — बाढ़ और सूखे से सुरक्षा पाएं",
+        actionButton: "",
+        smartSearch: "",
+        smartSearchDesc: "",
+        instantCheck: "",
+        instantCheckDesc: ""
       },
       networking: {
-        title: "किसान नेटवर्क",
-        content: "👥 किसान नेटवर्क\nभारत भर में 10,000+ सत्यापित किसानों से जुड़ें\n\n💼 निवेशक पोर्टल\nपूर्व-सत्यापित कृषि निवेशकों तक पहुंच",
-        actionButton: "नेटवर्क में शामिल हों"
+        title: "खेती का व्यापार बढ़ाएं",
+        content: "बिचौलियों के बिना सीधे खरीदारों से जुड़ें — बेहतर दाम पाएं\n\nखेत विस्तार के लिए निवेशक खोजें\n\n100+ किसानों से जुड़ें — भाव और टिप्स शेयर करें",
+        actionButton: ""
+      },
+      market: {
+        title: "बाज़ार रुझान",
+        content: "रियल-टाइम कीमत अपडेट, मांग का पूर्वानुमान और AI एनालिटिक्स द्वारा संचालित बाज़ार खुफिया\n\nरोज़ मंडी भाव देखें — सही समय पर बेचें, ज़्यादा कमाएं",
+        actionButton: ""
       },
       vision: {
-        title: "हमारा दृष्टिकोण",
-        content: "🎯 मिशन\nप्रौद्योगिकी और डेटा-संचालित अंतर्दृष्टि के साथ 1M+ किसानों को सशक्त बनाना\n\n🚀 विजन 2030\nभारत के कृषि को वैश्विक रूप से सबसे अधिक लाभदायक और टिकाऊ बनाना",
-        actionButton: "और अधिक जानें"
+        title: "स्मार्ट खेती टूल्स",
+        content: "AI बताएगा — इस सीजन आपके जिले में कौन सी फसल सबसे ज़्यादा मुनाफा देगी\n\nबुवाई और कटाई से पहले रियल-टाइम मौसम अलर्ट पाएं\n\nरोज़ मंडी भाव देखें — सही समय पर बेचें, ज़्यादा कमाएं",
+        actionButton: ""
+      },
+      crops: {
+        title: "आपका जिला, आपकी फसल",
+        content: "GPS से देखें — आपके जिले में कौन सी फसल सबसे अच्छी होती है\n\n50+ फसलों की पानी, लागत और मुनाफे की तुलना करें\n\nअपनी भाषा में पूरी खेती की गाइड पाएं",
+        actionButton: ""
       }
+    },
+    // Login Page
+    login: {
+      loginQuote: "जिस किसान ने देश को खिलाया,\nआज वही टेक-एग्री क्रांति का नेता बना।\nतुम्हारी मिट्टी तुम्हारा शेयर बाज़ार है।\nतुम्हारी फसल तुम्हारा मुनाफे का साम्राज्य है।\nस्वागत है उस दुनिया में — जहाँ तुम्हारा खेत मुनाफा छापता है। 🌾"
     }
   },
   
@@ -1315,7 +1339,15 @@ export const translations = {
       highRisk: "అధిక రిస్క్",
       highDemand: "అధిక డిమాండ్",
       mediumDemand: "మధ్యస్థ డిమాండ్",
-      lowDemand: "తక్కువ డిమాండ్"
+      lowDemand: "తక్కువ డిమాండ్",
+      hero: {
+        title: "🌾 భారతీయ రాష్ట్రాల వ్యవసాయ కేంద్రం",
+        subtitle: "ప్రధాన పంటలు • ఎగుమతి అవకాశాలు • మార్కెట్ అంతర్దృష్టులు"
+      },
+      stats: {
+        cropsCount: "84+ పంటలు",
+        exportData: "ఎగుమతి డేటా"
+      }
     },
     // Investments Page
     investments: {
@@ -1429,7 +1461,6 @@ export const translations = {
       browseSchemes: "పథకాలను బ్రౌజ్ చేయండి",
       governmentSupportDesc: "వివిధ ప్రభుత్వ మద్దతు కార్యక్రమాలు మరియు సబ్సిడీలకు యాక్సెస్ చేయండి",
       quickSchemes: "త్వరిత పథకాలు",
-      networkingHub: "నెట్‌వర్కింగ్ హబ్",
       marketTrends: "మార్కెట్ ట్రెండ్స్",
       ourVision: "మా దృక్పథం",
       farmSphereVision: "ఫార్మ్‌స్ఫియర్",
@@ -1465,7 +1496,6 @@ export const translations = {
       governmentScheme: "🏛️ ప్రభుత్వ పథకం",
       overview: "అవలోకనం",
       procedure: "ప్రక్రియ",
-      contact: "సంప్రదించండి",
       governingMinistry: "పాలక మంత్రిత్వ/విభాగం",
       objective: "లక్ష్యం",
       maxAmountSubsidy: "గరిష్ఠ మొత్తం/సబ్సిడీ",
@@ -1586,17 +1616,6 @@ export const translations = {
         suryapet: "సూర్యపేట"
       }
     },
-    // States Page
-    states: {
-      hero: {
-        title: "🌾 భారతీయ రాష్ట్రాల వ్యవసాయ కేంద్రం",
-        subtitle: "ప్రధాన పంటలు • ఎగుమతి అవకాశాలు • మార్కెట్ అంతర్దృష్టులు"
-      },
-      stats: {
-        cropsCount: "84+ పంటలు",
-        exportData: "ఎగుమతి డేటా"
-      }
-    },
     // Explore Crops Page
     exploreCrops: {
       hero: {
@@ -1699,26 +1718,44 @@ export const translations = {
       cta: {
         title: "మీ పొలాన్ని మార్చడానికి సిద్ధంగా ఉన్నారా?",
         subtitle: "ఫార్మ్‌స్ఫియర్‌తో ఇప్పటికే తమ వ్యవసాయ పద్ధతులను మార్చుకున్న వేలాది రైతులలో చేరండి",
-        button: "ఉచితంగా ప్రారంభించండి"
+        button: "ఉచితంగా ప్రారంభించండి",
       }
     },
     // Floating Action Buttons (Home Page)
     floatingButtons: {
       schemes: {
-        title: "ప్రభుత్వ పథకాలు",
-        content: "🔍 స్మార్ట్ శోధన\nవర్గం, రుణ మొత్తం, లేదా అర్హత ప్రమాణాల ద్వారా పథకాలను శోధించండి\n\n⚡ తక్షణ తనిఖీ\nక్షణాలలో AI-ఆధారిత అర్హత ధృవీకరణ",
-        actionButton: "పథకాలను అన్వేషించండి"
+        title: "ఉచిత ప్రభుత్వ సహాయం",
+        content: "PM-KISAN ద్వారా ₹6,000/సంవత్సరం నేరుగా బ్యాంక్‌కు పొందండి\n\nపంట బీమా చేయించుకోండి — వరదలు & కరువు నుండి రక్షణ పొందండి",
+        actionButton: "",
+        smartSearch: "",
+        smartSearchDesc: "",
+        instantCheck: "",
+        instantCheckDesc: ""
       },
       networking: {
-        title: "రైతు నెట్‌వర్క్",
-        content: "👥 రైతు నెట్‌వర్క్\nభారతదేశం అంతటా 10,000+ ధృవీకరించబడిన రైతులతో అనుసంధానం కలుద్ది\n\n💼 పెట్ట్దారు పోర్టల్\nముందుగా-ధృవీకరించబడిన వ్యవసాయ పెట్ట్దారులకు ప్రాప్తి",
-        actionButton: "నెట్‌వర్క్‌లో చేరండి"
+        title: "వ్యవసాయ వ్యాపారం పెంచుకోండి",
+        content: "దళారులు లేకుండా నేరుగా కొనుగోలుదారులతో అనుసంధానం అవ్వండి\n\nమీ పొలం విస్తరణకు పెట్టుబడిదారులను కనుగొనండి\n\n100+ రైతులతో చేరండి — ధరలు & చిట్కాలు పంచుకోండి",
+        actionButton: ""
+      },
+      market: {
+        title: "మార్కెట్ ట్రెండ్స్",
+        content: "AI యానలిటిక్స్ ద్వారా నడిపించబడే రియల్-టైమ్ ధర నవీకరణలు, డిమాండ్ అంచనాలు మరియు మార్కెట్ ఇంటెలిజెన్స్\n\nరోజువారీ మండీ ధరలు చూడండి — సరైన సమయంలో అమ్మండి",
+        actionButton: ""
       },
       vision: {
-        title: "మా దృక్పం",
-        content: "🎯 మిషన్\nసాంకేతిక మరియు డేటా-ఆధారిత అంతర్దృష్టులతో 1M+ రైతులను శక్తివంతం చేయడం\n\n🚀 విజన్ 2030\nభారతదేశం యొక్క వ్యవసాయాన్ని ప్రపంచంలోనే అత్యధిక లాభదాయకం మరియు స్థిరమైనదిగా చేయడం",
-        actionButton: "మరింత తెలుసుకోండి"
+        title: "స్మార్ట్ వ్యవసాయ సాధనాలు",
+        content: "AI చెబుతుంది — ఈ సీజన్‌లో మీ జిల్లాలో అత్యధిక లాభం ఇచ్చే పంట ఏది\n\nవిత్తనం వేయడానికి ముందు రియల్-టైమ్ వాతావరణ హెచ్చరికలు పొందండి\n\nరోజువారీ మండీ ధరలు చూడండి — సరైన సమయంలో అమ్మండి",
+        actionButton: ""
+      },
+      crops: {
+        title: "మీ జిల్లా, మీ పంటలు",
+        content: "GPS తో చూడండి — మీ జిల్లాలో ఏ పంట అత్యంత సూట్ అవుతుందో\n\n50+ పంటల నీరు, ఖర్చు & లాభాల పోలిక చూడండి\n\nమీ స్వంత భాషలో పూర్తి సాగు గైడ్ పొందండి",
+        actionButton: ""
       }
+    },
+    // Login Page
+    login: {
+      loginQuote: "ఒకప్పుడు దేశాన్ని పోషించిన రైతు,\nఇప్పుడు టెక్-అగ్రి విప్లవానికి నాయకుడు.\nనీ మట్టి నీ స్టాక్ మార్కెట్.\nనీ పంట నీ లాభాల సామ్రాజ్యం.\nస్వాగతం ఆ ప్రపంచానికి — నీ పొలాలు లాభాలు ముద్రించే చోటుకి. 🌾"
     }
   }
 };

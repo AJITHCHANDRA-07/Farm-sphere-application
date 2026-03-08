@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -110,6 +110,20 @@ const ScrollToTop = () => {
   return null;
 };
 
+// CONDITIONAL FOOTER COMPONENT
+const ConditionalFooter = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  
+  // Don't show footer on login/signup pages or when user is not authenticated
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  
+  if (!user || isAuthPage) {
+    return null;
+  }
+  
+  return <Footer />;
+};
 
 function App() {
   // Initialize PWA features
@@ -234,7 +248,7 @@ function App() {
               </Routes>
             </main>
 
-            <Footer />
+            <ConditionalFooter />
           </div>
         </Router>
       </AuthProvider>
